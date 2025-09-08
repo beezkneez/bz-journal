@@ -5,8 +5,9 @@
     "evening": {},
     "rules": [
       "micros only",
-      "stop when reached daily electrican wage",
+      "stop when reached daily electrican wage met",
       "do not  move stops away from entry",
+      "no random entries",
       "New rule - click to edit"
     ]
   }
