@@ -64,7 +64,10 @@
       "grade_reasoning": "",
       "general_comments": "",
       "screenshot_notes": "",
-      "rule_compliance": {},
+      "rule_compliance": {
+        "rule_0": true,
+        "rule_1": true
+      },
       "what_could_improve": "",
       "tomorrow_focus": "",
       "trading_screenshots": []
