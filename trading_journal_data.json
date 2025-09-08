@@ -17,7 +17,7 @@
       ]
     },
     "trading": {
-      "pnl": -900.0,
+      "pnl": -892.9999999999854,
       "process_grade": "F",
       "grade_reasoning": "because i am a junky and a dumbass",
       "general_comments": "fuck me i suck",
@@ -39,7 +39,10 @@
           "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-08/trading_1757343869_WhatsApp Image 2025-09-08 at 08.56.40_0afb2f50.jpg",
           "caption": "amp"
         }
-      ]
+      ],
+      "trade_log_sync": true,
+      "gross_pnl": -892.9999999999854,
+      "commissions": 0.0
     },
     "evening": {},
     "rules": [
