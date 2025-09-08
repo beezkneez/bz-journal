@@ -1209,7 +1209,7 @@ if uploaded_file is not None:
         data.update(imported_data)
         
         # Save to both GitHub and local
-        if st.session_state.github_connected:
+        if st.session_state.get('github_connected', False):
             for date_key, entry in imported_data.items():
                 st.session_state.github_storage.save_journal_entry(date_key, entry, data)
         save_local_data(data)
