@@ -1882,15 +1882,28 @@ elif page == "📚 Historical Analysis":
                     if 'trade_log' in entry:
                         trade_log = entry['trade_log']
                         st.markdown("### 📊 Trade Log Summary")
-                        st.write(f"**Total Trades:** {trade_log.get('trade_count', 'N/A')}")
-                        st.write(f"**Symbols:** {', '.join(trade_log.get('symbols', []))}")
-                        st.write(f"**Total Volume:** {trade_log.get('total_volume', 'N/A')} contracts")
-                        if 'win_rate' in trade_log:
-                            st.write(f"**Win Rate:** {trade_log['win_rate']:.1f}%")
-                        if 'gross_pnl' in trade_log:
-                            st.write(f"**Gross P&L:** ${trade_log['gross_pnl']:.2f}")
-                        if 'commissions' in trade_log:
-                            st.write(f"**Commissions:** ${trade_log['commissions']:.2f}")
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.write(f"**Total Trades:** {trade_log.get('trade_count', 'N/A')}")
+                            st.write(f"**Symbols:** {', '.join(trade_log.get('symbols', []))}")
+                            st.write(f"**Total Volume:** {trade_log.get('total_volume', 'N/A')} contracts")
+                            if 'win_rate' in trade_log:
+                                st.write(f"**Win Rate:** {trade_log['win_rate']:.1f}%")
+                        
+                        with col2:
+                            if 'gross_pnl' in trade_log:
+                                st.write(f"**Gross P&L:** ${trade_log['gross_pnl']:.2f}")
+                            if 'commissions' in trade_log:
+                                st.write(f"**Commissions:** ${trade_log['commissions']:.2f}")
+                            if 'largest_win' in trade_log:
+                                st.write(f"**Largest Win:** ${trade_log['largest_win']:.2f}")
+                            if 'largest_loss' in trade_log:
+                                st.write(f"**Largest Loss:** ${trade_log['largest_loss']:.2f}")
+                        
+                        if 'avg_winner' in trade_log and 'avg_loser' in trade_log:
+                            st.write(f"**Average Winner:** ${trade_log['avg_winner']:.2f}")
+                            st.write(f"**Average Loser:** ${trade_log['avg_loser']:.2f}")
                     
                     # Evening Section
                     if 'evening' in entry and entry['evening']:
