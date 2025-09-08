@@ -302,7 +302,7 @@ def display_image_full_size(image_source, caption="Screenshot"):
 st.markdown('<h1 class="main-header">📊 Trading Journal</h1>', unsafe_allow_html=True)
 
 # Debug info at the top
-st.sidebar.markdown("### 🔍 Debug Info 2")
+st.sidebar.markdown("### 🔍 Debug Info")
 st.sidebar.write(f"GitHub connected: {st.session_state.github_connected}")
 
 # Test secrets access
