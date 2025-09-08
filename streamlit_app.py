@@ -59,6 +59,14 @@ st.markdown("""
         text-align: center;
         cursor: pointer;
     }
+    
+    .trade-row {
+        background: rgba(0, 20, 40, 0.3);
+        border: 1px solid #333;
+        border-radius: 5px;
+        padding: 0.5rem;
+        margin: 0.2rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -261,6 +269,118 @@ def display_image_full_size(image_source, caption="Screenshot"):
             except:
                 st.error(f"Could not load image: {image_source}")
 
+def parse_trade_log(file_content):
+    """Parse uploaded trade log file"""
+    try:
+        lines = file_content.strip().split('\n')
+        if len(lines) < 2:
+            return None, "File appears to be empty or invalid"
+        
+        # Try to detect delimiter
+        header_line = lines[0]
+        delimiter = '\t' if '\t' in header_line else ',' if ',' in header_line else None
+        
+        if not delimiter:
+            return None, "Could not detect file format (expected CSV or TSV)"
+        
+        headers = header_line.split(delimiter)
+        trades = []
+        
+        for i, line in enumerate(lines[1:], 1):
+            if line.strip():
+                values = line.split(delimiter)
+                if len(values) >= len(headers):
+                    trade = {}
+                    for j, header in enumerate(headers):
+                        trade[header] = values[j] if j < len(values) else ''
+                    trades.append(trade)
+        
+        return trades, None
+    except Exception as e:
+        return None, f"Error parsing file: {str(e)}"
+
+def analyze_trades(trades):
+    """Comprehensive trade analysis"""
+    if not trades:
+        return {}
+    
+    analysis = {
+        'total_fills': len(trades),
+        'symbols': set(),
+        'order_types': set(),
+        'buy_orders': 0,
+        'sell_orders': 0,
+        'total_volume': 0,
+        'prices': [],
+        'times': [],
+        'positions': [],
+        'hourly_activity': {},
+        'daily_pnl': 0,
+        'win_rate': 0,
+        'avg_trade_size': 0
+    }
+    
+    for trade in trades:
+        # Basic counting
+        buy_sell = trade.get('BuySell', '')
+        if buy_sell == 'Buy':
+            analysis['buy_orders'] += 1
+        elif buy_sell == 'Sell':
+            analysis['sell_orders'] += 1
+        
+        # Volume
+        quantity = float(trade.get('Quantity', 0)) if trade.get('Quantity') else 0
+        analysis['total_volume'] += quantity
+        
+        # Symbols and order types
+        if trade.get('Symbol'):
+            analysis['symbols'].add(trade.get('Symbol'))
+        if trade.get('OrderType'):
+            analysis['order_types'].add(trade.get('OrderType'))
+        
+        # Prices
+        fill_price = float(trade.get('FillPrice', 0)) if trade.get('FillPrice') else 0
+        if fill_price > 0:
+            analysis['prices'].append(fill_price)
+        
+        # Time analysis
+        datetime_str = trade.get('DateTime', '')
+        if datetime_str and ' ' in datetime_str:
+            time_part = datetime_str.split(' ')[1]
+            if ':' in time_part:
+                hour = time_part.split(':')[0]
+                analysis['hourly_activity'][hour] = analysis['hourly_activity'].get(hour, 0) + 1
+                analysis['times'].append(time_part)
+        
+        # Position tracking
+        pos_qty = float(trade.get('PositionQuantity', 0)) if trade.get('PositionQuantity') else 0
+        analysis['positions'].append({
+            'time': datetime_str,
+            'symbol': trade.get('Symbol', ''),
+            'action': buy_sell,
+            'quantity': quantity,
+            'price': fill_price,
+            'position_qty': pos_qty,
+            'open_close': trade.get('OpenClose', ''),
+            'order_type': trade.get('OrderType', '')
+        })
+    
+    # Calculate derived statistics
+    if analysis['prices']:
+        analysis['high_price'] = max(analysis['prices'])
+        analysis['low_price'] = min(analysis['prices'])
+        analysis['avg_price'] = sum(analysis['prices']) / len(analysis['prices'])
+        analysis['price_range'] = analysis['high_price'] - analysis['low_price']
+    
+    if analysis['total_volume'] > 0:
+        analysis['avg_trade_size'] = analysis['total_volume'] / analysis['total_fills']
+    
+    # Convert sets to lists for JSON serialization
+    analysis['symbols'] = list(analysis['symbols'])
+    analysis['order_types'] = list(analysis['order_types'])
+    
+    return analysis
+
 # Initialize session state - CALENDAR VIEW FIRST!
 if 'current_date' not in st.session_state:
     st.session_state.current_date = date.today()
@@ -270,9 +390,13 @@ if 'github_connected' not in st.session_state:
     st.session_state.github_connected = False
 if 'github_storage' not in st.session_state:
     st.session_state.github_storage = GitHubStorage()
+if 'trade_analysis' not in st.session_state:
+    st.session_state.trade_analysis = None
+if 'trade_data' not in st.session_state:
+    st.session_state.trade_data = None
 
 # Main header - UPDATED VERSION
-st.markdown('<h1 class="main-header">📊 Trading Journal v7.0</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">📊 Trading Journal v7.1</h1>', unsafe_allow_html=True)
 
 # GitHub connection check and auto-setup
 if hasattr(st, 'secrets') and 'github' in st.secrets:
@@ -311,6 +435,9 @@ if st.sidebar.button("📈 Trading Review", key="nav_trading", use_container_wid
 
 if st.sidebar.button("🌙 Evening Recap", key="nav_evening", use_container_width=True):
     st.session_state.page = "🌙 Evening Recap"
+
+if st.sidebar.button("📊 Trade Log Analysis", key="nav_tradelog", use_container_width=True):
+    st.session_state.page = "📊 Trade Log Analysis"
 
 if st.sidebar.button("📚 Historical Analysis", key="nav_history", use_container_width=True):
     st.session_state.page = "📚 Historical Analysis"
@@ -469,6 +596,254 @@ if page == "📊 Calendar View":
         st.markdown("⚪ No trading data")
     with col4:
         st.markdown("💡 **Click View/Add to edit entries**")
+
+# ======== TRADE LOG ANALYSIS PAGE ========
+elif page == "📊 Trade Log Analysis":
+    st.markdown('<div class="section-header">📊 Trade Log Analysis</div>', unsafe_allow_html=True)
+    
+    # File upload section
+    st.subheader("📁 Upload Trade Log")
+    uploaded_file = st.file_uploader(
+        "Upload your trade activity log (CSV or TSV format)",
+        type=['txt', 'csv', 'tsv'],
+        help="Upload trade logs from your broker (e.g., TradeActivityLogExport files)"
+    )
+    
+    if uploaded_file is not None:
+        # Read and parse file
+        file_content = uploaded_file.read().decode('utf-8')
+        trades, error = parse_trade_log(file_content)
+        
+        if error:
+            st.error(f"Error parsing file: {error}")
+        else:
+            # Store in session state
+            st.session_state.trade_data = trades
+            st.session_state.trade_analysis = analyze_trades(trades)
+            st.success(f"✅ Successfully parsed {len(trades)} trade records!")
+    
+    # Display analysis if available
+    if st.session_state.trade_analysis:
+        analysis = st.session_state.trade_analysis
+        trades = st.session_state.trade_data
+        
+        st.markdown("---")
+        st.subheader("📈 Trading Statistics")
+        
+        # Key metrics in columns
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Total Fills", analysis['total_fills'])
+            st.metric("Buy Orders", f"{analysis['buy_orders']} ({analysis['buy_orders']/analysis['total_fills']*100:.1f}%)")
+        
+        with col2:
+            st.metric("Sell Orders", f"{analysis['sell_orders']} ({analysis['sell_orders']/analysis['total_fills']*100:.1f}%)")
+            st.metric("Total Volume", f"{analysis['total_volume']:.0f} contracts")
+        
+        with col3:
+            if analysis.get('high_price'):
+                st.metric("High Price", f"${analysis['high_price']:.2f}")
+                st.metric("Low Price", f"${analysis['low_price']:.2f}")
+        
+        with col4:
+            if analysis.get('avg_price'):
+                st.metric("Average Price", f"${analysis['avg_price']:.2f}")
+                st.metric("Price Range", f"${analysis.get('price_range', 0):.2f}")
+        
+        # Symbols and Order Types
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("🎯 Symbols Traded")
+            for symbol in analysis['symbols']:
+                st.write(f"• {symbol}")
+        
+        with col2:
+            st.subheader("📋 Order Types")
+            for order_type in analysis['order_types']:
+                st.write(f"• {order_type}")
+        
+        # Hourly Activity Chart
+        if analysis['hourly_activity']:
+            st.subheader("⏰ Trading Activity by Hour")
+            hours = list(analysis['hourly_activity'].keys())
+            counts = list(analysis['hourly_activity'].values())
+            
+            fig = go.Figure(data=[
+                go.Bar(x=hours, y=counts, marker_color='#64ffda')
+            ])
+            fig.update_layout(
+                title="Fills by Hour",
+                xaxis_title="Hour",
+                yaxis_title="Number of Fills",
+                template="plotly_dark"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Price Distribution
+        if analysis.get('prices'):
+            st.subheader("💰 Price Distribution")
+            fig = go.Figure(data=[
+                go.Histogram(x=analysis['prices'], nbinsx=20, marker_color='#1de9b6')
+            ])
+            fig.update_layout(
+                title="Fill Price Distribution",
+                xaxis_title="Price ($)",
+                yaxis_title="Frequency",
+                template="plotly_dark"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Position Flow Chart
+        if analysis['positions']:
+            st.subheader("📊 Position Flow")
+            positions = analysis['positions']
+            times = []
+            position_qtys = []
+            
+            for pos in positions:
+                if pos['time'] and pos['position_qty'] != '':
+                    times.append(pos['time'])
+                    position_qtys.append(pos['position_qty'])
+            
+            if times and position_qtys:
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=times,
+                    y=position_qtys,
+                    mode='lines+markers',
+                    name='Position Size',
+                    line=dict(color='#64ffda'),
+                    marker=dict(size=6)
+                ))
+                fig.update_layout(
+                    title="Position Size Over Time",
+                    xaxis_title="Time",
+                    yaxis_title="Position Quantity",
+                    template="plotly_dark"
+                )
+                st.plotly_chart(fig, use_container_width=True)
+        
+        # Detailed Trade List
+        st.subheader("📋 Detailed Trade Log")
+        
+        # Add filters
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            symbol_filter = st.selectbox(
+                "Filter by Symbol",
+                options=['All'] + analysis['symbols'],
+                key="symbol_filter"
+            )
+        
+        with col2:
+            action_filter = st.selectbox(
+                "Filter by Action",
+                options=['All', 'Buy', 'Sell'],
+                key="action_filter"
+            )
+        
+        with col3:
+            order_type_filter = st.selectbox(
+                "Filter by Order Type",
+                options=['All'] + analysis['order_types'],
+                key="order_type_filter"
+            )
+        
+        # Filter trades
+        filtered_trades = trades
+        
+        if symbol_filter != 'All':
+            filtered_trades = [t for t in filtered_trades if t.get('Symbol') == symbol_filter]
+        
+        if action_filter != 'All':
+            filtered_trades = [t for t in filtered_trades if t.get('BuySell') == action_filter]
+        
+        if order_type_filter != 'All':
+            filtered_trades = [t for t in filtered_trades if t.get('OrderType') == order_type_filter]
+        
+        st.write(f"Showing {len(filtered_trades)} of {len(trades)} trades")
+        
+        # Display trades in a nice format
+        for i, trade in enumerate(filtered_trades):
+            with st.expander(f"Trade {i+1}: {trade.get('BuySell', '')} {trade.get('Quantity', '')} {trade.get('Symbol', '')} @ ${trade.get('FillPrice', '')}"):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.write(f"**Time:** {trade.get('DateTime', '')}")
+                    st.write(f"**Symbol:** {trade.get('Symbol', '')}")
+                    st.write(f"**Action:** {trade.get('BuySell', '')}")
+                    st.write(f"**Quantity:** {trade.get('Quantity', '')}")
+                    st.write(f"**Order Type:** {trade.get('OrderType', '')}")
+                
+                with col2:
+                    st.write(f"**Fill Price:** ${trade.get('FillPrice', '')}")
+                    st.write(f"**Position Qty:** {trade.get('PositionQuantity', '')}")
+                    st.write(f"**Open/Close:** {trade.get('OpenClose', '')}")
+                    st.write(f"**Order ID:** {trade.get('InternalOrderID', '')}")
+                    
+                    # Add tagging functionality
+                    tag_key = f"trade_tag_{i}"
+                    trade_tag = st.text_input(
+                        "Add Tag/Note:",
+                        value=trade.get('user_tag', ''),
+                        key=tag_key,
+                        placeholder="e.g., 'good entry', 'revenge trade', 'took profit too early'"
+                    )
+                    
+                    if trade_tag != trade.get('user_tag', ''):
+                        trade['user_tag'] = trade_tag
+                        st.session_state.trade_data = filtered_trades
+        
+        # Save/Export functionality
+        st.markdown("---")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("💾 Save Analysis to Journal"):
+                # Save trade analysis to current date
+                current_entry['trade_log'] = {
+                    'analysis': analysis,
+                    'trade_count': len(trades),
+                    'symbols': analysis['symbols'],
+                    'total_volume': analysis['total_volume']
+                }
+                
+                if st.session_state.get('github_connected', False):
+                    if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                        st.success("✅ Trade analysis saved to journal!")
+                    else:
+                        save_local_data(data)
+                        st.success("💾 Trade analysis saved locally!")
+                else:
+                    save_local_data(data)
+                    st.success("💾 Trade analysis saved locally!")
+        
+        with col2:
+            # Export filtered data as CSV
+            if filtered_trades:
+                df = pd.DataFrame(filtered_trades)
+                csv = df.to_csv(index=False)
+                st.download_button(
+                    label="📤 Export Filtered Trades as CSV",
+                    data=csv,
+                    file_name=f"filtered_trades_{selected_date.strftime('%Y%m%d')}.csv",
+                    mime="text/csv"
+                )
+    
+    else:
+        st.info("Upload a trade log file to see detailed analysis and statistics.")
+        
+        # Show sample format
+        st.subheader("📋 Supported File Formats")
+        st.write("Your trade log should be in CSV or TSV format with columns like:")
+        st.code("""
+DateTime, Symbol, BuySell, Quantity, FillPrice, OrderType, OpenClose, PositionQuantity
+2025-09-08 05:49:31, F.US.mNQU25, Buy, 3, 23736.50, Market, Open, 3
+2025-09-08 06:06:38, F.US.mNQU25, Sell, 1, 23746.75, Market, Close, 2
+        """)
 
 # ======== MORNING PREP PAGE ========
 elif page == "🌅 Morning Prep":
@@ -1273,6 +1648,14 @@ elif page == "📚 Historical Analysis":
                                     if screenshot_link:
                                         st.write(f"*{screenshot_caption}:*")
                                         display_image_full_size(screenshot_link, screenshot_caption)
+                    
+                    # Trade Log Summary (if available)
+                    if 'trade_log' in entry:
+                        trade_log = entry['trade_log']
+                        st.markdown("### 📊 Trade Log Summary")
+                        st.write(f"**Total Trades:** {trade_log.get('trade_count', 'N/A')}")
+                        st.write(f"**Symbols:** {', '.join(trade_log.get('symbols', []))}")
+                        st.write(f"**Total Volume:** {trade_log.get('total_volume', 'N/A')} contracts")
                     
                     # Evening Section
                     if 'evening' in entry and entry['evening']:
