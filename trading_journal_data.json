@@ -5,6 +5,7 @@
     "evening": {},
     "rules": [
       "micros only",
+      "stop when reached daily electrican wage",
       "New rule - click to edit"
     ]
   }
