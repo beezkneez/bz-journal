@@ -808,16 +808,30 @@ elif page == "📊 Trade Log Analysis":
         with col1:
             st.subheader("🎯 Symbols Traded")
             symbols = analysis.get('symbols', [])
-            for symbol in symbols:
-                st.write(f"• {symbol}")
+            if symbols:
+                for symbol in symbols:
+                    st.write(f"• {symbol}")
+            else:
+                st.write("No symbol data available")
         
         with col2:
             st.subheader("📋 Order Types")
             order_types = analysis.get('order_types', [])
-            for order_type in order_types:
-                st.write(f"• {order_type}")
+            if order_types:
+                for order_type in order_types:
+                    st.write(f"• {order_type}")
+            else:
+                st.write("No order type data available")
         
-        # Hourly Activity Chart
+        # Show saved analysis summary
+        if has_existing_data and not trades:
+            st.subheader("📊 Saved Analysis Summary")
+            st.write(f"**Trade Count:** {existing_trade_log.get('trade_count', 'N/A')}")
+            st.write(f"**Total Volume:** {existing_trade_log.get('total_volume', 'N/A')} contracts")
+            st.write(f"**Win Rate:** {existing_trade_log.get('win_rate', 0):.1f}%")
+            st.write(f"**Total Trades:** {existing_trade_log.get('total_trades', 'N/A')}")
+        
+        # Hourly Activity Chart - only if data available
         hourly_activity = analysis.get('hourly_activity', {})
         if hourly_activity:
             st.subheader("⏰ Trading Activity by Hour")
@@ -834,141 +848,33 @@ elif page == "📊 Trade Log Analysis":
                 template="plotly_dark"
             )
             st.plotly_chart(fig, use_container_width=True)
+        elif has_existing_data:
+            st.subheader("⏰ Trading Activity by Hour")
+            st.info("Hourly activity chart not available for saved data. Upload original file to see charts.")
         
         # Running P&L Chart - only if we have position data
         positions = analysis.get('positions', [])
         if positions:
             st.subheader("💰 Running P&L")
+            st.info("Running P&L chart available with detailed position data.")
             
-            # Define contract specifications
-            def get_point_value(symbol):
-                """Get point value for different futures contracts"""
-                if 'ENQU25' in symbol:  # E-mini NASDAQ
-                    return 20.0
-                elif 'mNQU25' in symbol or 'MNQU25' in symbol:  # Micro NASDAQ
-                    return 2.0
-                else:
-                    return 1.0  # Default fallback
-            
-            # Calculate running P&L
-            running_pnl = []
-            cumulative_pnl = 0
-            times = []
-            open_positions = {}  # Track open positions by symbol
-            
-            for pos in positions:
-                if not pos.get('time') or pos.get('price', 0) <= 0:
-                    continue
-                    
-                symbol = pos.get('symbol', '')
-                point_value = get_point_value(symbol)
-                
-                if symbol not in open_positions:
-                    open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
-                
-                pnl_change = 0
-                action = pos.get('action', '')
-                open_close = pos.get('open_close', '')
-                quantity = pos.get('quantity', 0)
-                price = pos.get('price', 0)
-                
-                if open_close == 'Open':
-                    # Opening position - track for future P&L calculation
-                    if action == 'Buy':
-                        # Long position
-                        new_total_cost = open_positions[symbol]['total_cost'] + (quantity * price)
-                        new_qty = open_positions[symbol]['qty'] + quantity
-                        open_positions[symbol]['total_cost'] = new_total_cost
-                        open_positions[symbol]['qty'] = new_qty
-                        if new_qty != 0:
-                            open_positions[symbol]['avg_price'] = new_total_cost / new_qty
-                    else:  # Sell
-                        # Short position
-                        new_total_cost = open_positions[symbol]['total_cost'] - (quantity * price)
-                        new_qty = open_positions[symbol]['qty'] - quantity
-                        open_positions[symbol]['total_cost'] = new_total_cost
-                        open_positions[symbol]['qty'] = new_qty
-                        if new_qty != 0:
-                            open_positions[symbol]['avg_price'] = abs(new_total_cost / new_qty)
-                
-                elif open_close == 'Close':
-                    # Closing position - calculate realized P&L with correct point value
-                    if action == 'Sell':
-                        # Closing long position
-                        if open_positions[symbol]['qty'] > 0:
-                            avg_price = open_positions[symbol]['avg_price']
-                            price_diff = price - avg_price
-                            pnl_change = quantity * price_diff * point_value
-                            
-                            # Reduce position proportionally
-                            remaining_qty = open_positions[symbol]['qty'] - quantity
-                            if remaining_qty > 0:
-                                open_positions[symbol]['qty'] = remaining_qty
-                                open_positions[symbol]['total_cost'] = remaining_qty * avg_price
-                            else:
-                                open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
-                                
-                    else:  # Buy to close
-                        # Closing short position
-                        if open_positions[symbol]['qty'] < 0:
-                            avg_price = open_positions[symbol]['avg_price']
-                            price_diff = avg_price - price  # Profit when covering lower
-                            pnl_change = quantity * price_diff * point_value
-                            
-                            # Reduce position proportionally
-                            remaining_qty = open_positions[symbol]['qty'] + quantity
-                            if remaining_qty < 0:
-                                open_positions[symbol]['qty'] = remaining_qty
-                                open_positions[symbol]['total_cost'] = remaining_qty * avg_price
-                            else:
-                                open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
-                
-                cumulative_pnl += pnl_change
-                running_pnl.append(cumulative_pnl)
-                times.append(pos.get('time', ''))
-            
-            if times and running_pnl:
-                fig = go.Figure()
-                
-                # Color the line based on P&L
-                colors = ['green' if pnl >= 0 else 'red' for pnl in running_pnl]
-                
-                fig.add_trace(go.Scatter(
-                    x=times,
-                    y=running_pnl,
-                    mode='lines+markers',
-                    name='Running P&L',
-                    line=dict(color='#64ffda', width=2),
-                    marker=dict(size=4, color=colors),
-                    fill='tonexty' if running_pnl[0] >= 0 else 'tozeroy',
-                    fillcolor='rgba(100, 255, 218, 0.1)' if running_pnl[-1] >= 0 else 'rgba(255, 100, 100, 0.1)'
-                ))
-                
-                # Add zero line
-                fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
-                
-                fig.update_layout(
-                    title="Running P&L Throughout Trading Session",
-                    xaxis_title="Time",
-                    yaxis_title="Cumulative P&L ($)",
-                    template="plotly_dark",
-                    showlegend=False
-                )
-                
-                st.plotly_chart(fig, use_container_width=True)
-                
-                # Display final P&L and contract info
-                final_pnl = running_pnl[-1] if running_pnl else 0
-                pnl_color = "green" if final_pnl >= 0 else "red"
-                st.markdown(f"**Final Session P&L:** <span style='color: {pnl_color}'>${final_pnl:.2f}</span>", unsafe_allow_html=True)
-                
-                # Show contract specifications used
-                unique_symbols = symbols
-                if unique_symbols:
+            # Show basic P&L info instead of complex chart for saved data
+            if has_existing_data and not trades:
+                st.write(f"**Final P&L:** ${gross_pnl:.2f}")
+                if symbols:
                     st.markdown("**Contract Point Values Used:**")
-                    for symbol in unique_symbols:
-                        point_val = get_point_value(symbol)
+                    for symbol in symbols:
+                        if 'ENQU25' in symbol:
+                            point_val = 20.0
+                        elif 'mNQU25' in symbol or 'MNQU25' in symbol:
+                            point_val = 2.0
+                        else:
+                            point_val = 1.0
                         st.write(f"• {symbol}: ${point_val:.2f} per point")
+        elif has_existing_data:
+            st.subheader("💰 Running P&L")
+            st.info("Running P&L chart not available for saved data. Upload original file to see detailed P&L progression.")
+            st.write(f"**Final Session P&L:** ${gross_pnl:.2f}")
         
         # Detailed Trade List - only if we have raw trade data
         if trades:
