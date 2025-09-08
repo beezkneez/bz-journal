@@ -1115,14 +1115,22 @@ col1, col2 = st.sidebar.columns(2)
 with col1:
     st.metric("P&L", f"${pnl_5:.2f}")
 with col2:
-    st.metric("Rules", f"{compliance_5:.0f}%")
+    st.metric("Rules", f"{compliance_5:.1f}%")
+    # Temporary debug info
+    if recent_5_data:
+        total_rules = sum([len(entry.get('trading', {}).get('rule_compliance', {})) for entry in recent_5_data.values()])
+        st.caption(f"Debug: {total_rules} total rules")
 
 st.sidebar.markdown("**📊 Last 30 Days**")
 col1, col2 = st.sidebar.columns(2)
 with col1:
     st.metric("P&L", f"${pnl_30:.2f}")
 with col2:
-    st.metric("Rules", f"{compliance_30:.0f}%")
+    st.metric("Rules", f"{compliance_30:.1f}%")
+    # Temporary debug info
+    if recent_30_data:
+        total_rules = sum([len(entry.get('trading', {}).get('rule_compliance', {})) for entry in recent_30_data.values()])
+        st.caption(f"Debug: {total_rules} total rules")
 
 # Export/Import functionality
 st.sidebar.markdown("---")
