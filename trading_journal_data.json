@@ -60,6 +60,8 @@
       "trading_screenshots": []
     },
     "evening": {},
-    "rules": []
+    "rules": [
+      "New rule - click to edit"
+    ]
   }
 }
