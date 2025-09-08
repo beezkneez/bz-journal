@@ -1,0 +1,20 @@
+{
+  "2025-09-08": {
+    "morning": {
+      "sleep_quality": 7,
+      "emotional_state": "Calm & Focused",
+      "post_night_shift": false,
+      "checked_news": false,
+      "triggers_present": "",
+      "grateful_for": "",
+      "daily_goal": "",
+      "trading_process": "",
+      "morning_screenshots": [
+        "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-08/morning_Screenshot 2025-08-29 163511.png"
+      ]
+    },
+    "trading": {},
+    "evening": {},
+    "rules": []
+  }
+}
