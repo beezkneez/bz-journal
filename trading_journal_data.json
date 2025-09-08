@@ -47,7 +47,17 @@
     ]
   },
   "2025-09-01": {
-    "morning": {},
+    "morning": {
+      "sleep_quality": 7,
+      "emotional_state": "Calm & Focused",
+      "post_night_shift": false,
+      "checked_news": false,
+      "triggers_present": "",
+      "grateful_for": "",
+      "daily_goal": "",
+      "trading_process": "",
+      "morning_screenshots": []
+    },
     "trading": {
       "pnl": 500.0,
       "process_grade": "A",
