@@ -1268,4 +1268,4 @@ if not st.session_state.github_connected:
     - **Permanent backup** with version history
     
     *Once connected, your trading journal will be professional-grade and accessible anywhere!*
-    """)
+    """)s
