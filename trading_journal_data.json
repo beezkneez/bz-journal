@@ -43,5 +43,21 @@
       "New rule - click to edit",
       "New rule - click to edit"
     ]
+  },
+  "2025-09-01": {
+    "morning": {},
+    "trading": {
+      "pnl": 500.0,
+      "process_grade": "A",
+      "grade_reasoning": "",
+      "general_comments": "",
+      "screenshot_notes": "",
+      "rule_compliance": {},
+      "what_could_improve": "",
+      "tomorrow_focus": "",
+      "trading_screenshots": []
+    },
+    "evening": {},
+    "rules": []
   }
 }
