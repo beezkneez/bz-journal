@@ -1039,29 +1039,28 @@ elif page == "📊 Trade Log Analysis":
                     st.success(f"💾 Trading Review P&L updated to ${net_pnl:.2f} for {selected_date.strftime('%B %d, %Y')}!")
         
         with col3:
-            if st.button("🗑️ Delete Trade Log", type="secondary"):
-                if st.button("⚠️ Confirm Delete", key="confirm_delete_tradelog"):
-                    # Remove trade log from current entry
-                    if 'trade_log' in current_entry:
-                        del current_entry['trade_log']
-                    
-                    # Clear session state
-                    st.session_state.trade_analysis = None
-                    st.session_state.trade_data = None
-                    st.session_state.trade_log_action = None
-                    
-                    # Save the updated data
-                    if st.session_state.get('github_connected', False):
-                        if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
-                            st.success("✅ Trade log deleted from GitHub!")
-                        else:
-                            save_local_data(data)
-                            st.success("💾 Trade log deleted locally!")
+            if st.button("🗑️ Delete Trade Log"):
+                # Remove trade log from current entry
+                if 'trade_log' in current_entry:
+                    del current_entry['trade_log']
+                
+                # Clear session state
+                st.session_state.trade_analysis = None
+                st.session_state.trade_data = None
+                st.session_state.trade_log_action = None
+                
+                # Save the updated data
+                if st.session_state.get('github_connected', False):
+                    if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                        st.success("✅ Trade log deleted from GitHub!")
                     else:
                         save_local_data(data)
                         st.success("💾 Trade log deleted locally!")
-                    
-                    st.rerun()
+                else:
+                    save_local_data(data)
+                    st.success("💾 Trade log deleted locally!")
+                
+                st.rerun()
         
         with col4:
             # Export filtered data as CSV - only if we have trade data
