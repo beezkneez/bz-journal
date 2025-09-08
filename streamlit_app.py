@@ -1769,6 +1769,33 @@ def get_period_metrics(period_data):
 pnl_5, compliance_5 = get_period_metrics(recent_5_data)
 pnl_30, compliance_30 = get_period_metrics(recent_30_data)
 
+# Calculate average grade from recent trading reviews
+def get_recent_grades(period_data):
+    grades = []
+    for entry in period_data.values():
+        grade = entry.get('trading', {}).get('process_grade')
+        if grade:
+            grades.append(grade)
+    return grades
+
+# Get recent grades for trending
+recent_grades = get_recent_grades(recent_30_data)
+if recent_grades:
+    # Count frequency of each grade
+    from collections import Counter
+    grade_counts = Counter(recent_grades)
+    most_common_grade = grade_counts.most_common(1)[0][0]
+    
+    # For display, show the trend of recent grades
+    recent_5_grades = get_recent_grades(recent_5_data)
+    if len(recent_5_grades) >= 2:
+        latest_grade_trend = Counter(recent_5_grades).most_common(1)[0][0]
+    else:
+        latest_grade_trend = most_common_grade
+else:
+    most_common_grade = "N/A"
+    latest_grade_trend = "N/A"
+
 # Display metrics in organized way
 st.sidebar.markdown("**📈 Last 5 Days**")
 col1, col2 = st.sidebar.columns(2)
@@ -1783,6 +1810,23 @@ with col1:
     st.metric("P&L", f"${pnl_30:.2f}")
 with col2:
     st.metric("Rules", f"{compliance_30:.1f}%")
+
+# Process Grade Trend
+st.sidebar.markdown("**🎯 Process Grade**")
+if recent_grades:
+    grade_color = {
+        "A": "green", 
+        "B": "blue", 
+        "C": "orange", 
+        "D": "red", 
+        "F": "darkred"
+    }.get(latest_grade_trend, "gray")
+    
+    st.sidebar.markdown(f"Recent Trend: <span style='color: {grade_color}; font-weight: bold; font-size: 1.2em'>{latest_grade_trend}</span>", unsafe_allow_html=True)
+    if len(recent_grades) > 1:
+        st.sidebar.write(f"Last {len(recent_grades)} grades: {' → '.join(recent_grades[-5:])}")
+else:
+    st.sidebar.write("No grades yet")
 
 # Export/Import functionality
 st.sidebar.markdown("---")
