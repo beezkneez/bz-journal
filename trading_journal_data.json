@@ -676,7 +676,12 @@
   },
   "2025-09-05": {
     "morning": {},
-    "trading": {},
+    "trading": {
+      "pnl": -992.9999999999854,
+      "trade_log_sync": true,
+      "gross_pnl": -892.9999999999854,
+      "commissions": 100.0
+    },
     "evening": {},
     "rules": [],
     "trade_log": {
