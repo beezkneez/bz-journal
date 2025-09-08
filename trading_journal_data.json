@@ -11,7 +11,25 @@
       "trading_process": "let price come to me",
       "morning_screenshots": []
     },
-    "trading": {},
+    "trading": {
+      "pnl": 300.0,
+      "process_grade": "A",
+      "grade_reasoning": "blah blah blah because im sweet",
+      "general_comments": "good day - trned day bullish",
+      "screenshot_notes": "these were some good trades",
+      "rule_compliance": {
+        "rule_0": true,
+        "rule_1": true,
+        "rule_2": true,
+        "rule_3": true,
+        "rule_4": false
+      },
+      "what_could_improve": "follow all my rtules",
+      "tomorrow_focus": "follow rules - be a sniper ",
+      "trading_screenshots": [
+        "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-08/trading_Screenshot 2025-08-29 155825.png"
+      ]
+    },
     "evening": {},
     "rules": [
       "micros only",
