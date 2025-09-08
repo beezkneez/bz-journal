@@ -9,7 +9,12 @@
       "grateful_for": "my brain",
       "daily_goal": "use patience",
       "trading_process": "let price come to me",
-      "morning_screenshots": []
+      "morning_screenshots": [
+        {
+          "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-08/morning_Screenshot 2025-09-02 154713.png",
+          "caption": "test caption"
+        }
+      ]
     },
     "trading": {
       "pnl": 300.0,
