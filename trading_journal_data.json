@@ -22,7 +22,8 @@
         "rule_1": true,
         "rule_2": true,
         "rule_3": true,
-        "rule_4": false
+        "rule_4": true,
+        "rule_5": false
       },
       "what_could_improve": "follow all my rtules",
       "tomorrow_focus": "follow rules - be a sniper ",
