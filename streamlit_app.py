@@ -800,6 +800,250 @@ elif page == "📊 Trade Log Analysis":
             st.metric("Gross P&L", f"${gross_pnl:.2f}")
             st.metric("Net P&L", f"${net_pnl:.2f}", help="P&L after commissions")
         
+        # Symbols and Order Types
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("🎯 Symbols Traded")
+            symbols = analysis.get('symbols', [])
+            for symbol in symbols:
+                st.write(f"• {symbol}")
+        
+        with col2:
+            st.subheader("📋 Order Types")
+            order_types = analysis.get('order_types', [])
+            for order_type in order_types:
+                st.write(f"• {order_type}")
+        
+        # Hourly Activity Chart
+        hourly_activity = analysis.get('hourly_activity', {})
+        if hourly_activity:
+            st.subheader("⏰ Trading Activity by Hour")
+            hours = list(hourly_activity.keys())
+            counts = list(hourly_activity.values())
+            
+            fig = go.Figure(data=[
+                go.Bar(x=hours, y=counts, marker_color='#64ffda')
+            ])
+            fig.update_layout(
+                title="Fills by Hour",
+                xaxis_title="Hour",
+                yaxis_title="Number of Fills",
+                template="plotly_dark"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Running P&L Chart - only if we have position data
+        positions = analysis.get('positions', [])
+        if positions:
+            st.subheader("💰 Running P&L")
+            
+            # Define contract specifications
+            def get_point_value(symbol):
+                """Get point value for different futures contracts"""
+                if 'ENQU25' in symbol:  # E-mini NASDAQ
+                    return 20.0
+                elif 'mNQU25' in symbol or 'MNQU25' in symbol:  # Micro NASDAQ
+                    return 2.0
+                else:
+                    return 1.0  # Default fallback
+            
+            # Calculate running P&L
+            running_pnl = []
+            cumulative_pnl = 0
+            times = []
+            open_positions = {}  # Track open positions by symbol
+            
+            for pos in positions:
+                if not pos.get('time') or pos.get('price', 0) <= 0:
+                    continue
+                    
+                symbol = pos.get('symbol', '')
+                point_value = get_point_value(symbol)
+                
+                if symbol not in open_positions:
+                    open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
+                
+                pnl_change = 0
+                action = pos.get('action', '')
+                open_close = pos.get('open_close', '')
+                quantity = pos.get('quantity', 0)
+                price = pos.get('price', 0)
+                
+                if open_close == 'Open':
+                    # Opening position - track for future P&L calculation
+                    if action == 'Buy':
+                        # Long position
+                        new_total_cost = open_positions[symbol]['total_cost'] + (quantity * price)
+                        new_qty = open_positions[symbol]['qty'] + quantity
+                        open_positions[symbol]['total_cost'] = new_total_cost
+                        open_positions[symbol]['qty'] = new_qty
+                        if new_qty != 0:
+                            open_positions[symbol]['avg_price'] = new_total_cost / new_qty
+                    else:  # Sell
+                        # Short position
+                        new_total_cost = open_positions[symbol]['total_cost'] - (quantity * price)
+                        new_qty = open_positions[symbol]['qty'] - quantity
+                        open_positions[symbol]['total_cost'] = new_total_cost
+                        open_positions[symbol]['qty'] = new_qty
+                        if new_qty != 0:
+                            open_positions[symbol]['avg_price'] = abs(new_total_cost / new_qty)
+                
+                elif open_close == 'Close':
+                    # Closing position - calculate realized P&L with correct point value
+                    if action == 'Sell':
+                        # Closing long position
+                        if open_positions[symbol]['qty'] > 0:
+                            avg_price = open_positions[symbol]['avg_price']
+                            price_diff = price - avg_price
+                            pnl_change = quantity * price_diff * point_value
+                            
+                            # Reduce position proportionally
+                            remaining_qty = open_positions[symbol]['qty'] - quantity
+                            if remaining_qty > 0:
+                                open_positions[symbol]['qty'] = remaining_qty
+                                open_positions[symbol]['total_cost'] = remaining_qty * avg_price
+                            else:
+                                open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
+                                
+                    else:  # Buy to close
+                        # Closing short position
+                        if open_positions[symbol]['qty'] < 0:
+                            avg_price = open_positions[symbol]['avg_price']
+                            price_diff = avg_price - price  # Profit when covering lower
+                            pnl_change = quantity * price_diff * point_value
+                            
+                            # Reduce position proportionally
+                            remaining_qty = open_positions[symbol]['qty'] + quantity
+                            if remaining_qty < 0:
+                                open_positions[symbol]['qty'] = remaining_qty
+                                open_positions[symbol]['total_cost'] = remaining_qty * avg_price
+                            else:
+                                open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
+                
+                cumulative_pnl += pnl_change
+                running_pnl.append(cumulative_pnl)
+                times.append(pos.get('time', ''))
+            
+            if times and running_pnl:
+                fig = go.Figure()
+                
+                # Color the line based on P&L
+                colors = ['green' if pnl >= 0 else 'red' for pnl in running_pnl]
+                
+                fig.add_trace(go.Scatter(
+                    x=times,
+                    y=running_pnl,
+                    mode='lines+markers',
+                    name='Running P&L',
+                    line=dict(color='#64ffda', width=2),
+                    marker=dict(size=4, color=colors),
+                    fill='tonexty' if running_pnl[0] >= 0 else 'tozeroy',
+                    fillcolor='rgba(100, 255, 218, 0.1)' if running_pnl[-1] >= 0 else 'rgba(255, 100, 100, 0.1)'
+                ))
+                
+                # Add zero line
+                fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
+                
+                fig.update_layout(
+                    title="Running P&L Throughout Trading Session",
+                    xaxis_title="Time",
+                    yaxis_title="Cumulative P&L ($)",
+                    template="plotly_dark",
+                    showlegend=False
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Display final P&L and contract info
+                final_pnl = running_pnl[-1] if running_pnl else 0
+                pnl_color = "green" if final_pnl >= 0 else "red"
+                st.markdown(f"**Final Session P&L:** <span style='color: {pnl_color}'>${final_pnl:.2f}</span>", unsafe_allow_html=True)
+                
+                # Show contract specifications used
+                unique_symbols = symbols
+                if unique_symbols:
+                    st.markdown("**Contract Point Values Used:**")
+                    for symbol in unique_symbols:
+                        point_val = get_point_value(symbol)
+                        st.write(f"• {symbol}: ${point_val:.2f} per point")
+        
+        # Detailed Trade List - only if we have raw trade data
+        if trades:
+            st.subheader("📋 Detailed Trade Log")
+            
+            # Add filters
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                symbol_filter = st.selectbox(
+                    "Filter by Symbol",
+                    options=['All'] + symbols,
+                    key="symbol_filter"
+                )
+            
+            with col2:
+                action_filter = st.selectbox(
+                    "Filter by Action",
+                    options=['All', 'Buy', 'Sell'],
+                    key="action_filter"
+                )
+            
+            with col3:
+                order_type_filter = st.selectbox(
+                    "Filter by Order Type",
+                    options=['All'] + order_types,
+                    key="order_type_filter"
+                )
+            
+            # Filter trades
+            filtered_trades = trades
+            
+            if symbol_filter != 'All':
+                filtered_trades = [t for t in filtered_trades if t.get('Symbol') == symbol_filter]
+            
+            if action_filter != 'All':
+                filtered_trades = [t for t in filtered_trades if t.get('BuySell') == action_filter]
+            
+            if order_type_filter != 'All':
+                filtered_trades = [t for t in filtered_trades if t.get('OrderType') == order_type_filter]
+            
+            st.write(f"Showing {len(filtered_trades)} of {len(trades)} trades")
+            
+            # Display trades in a nice format
+            for i, trade in enumerate(filtered_trades):
+                with st.expander(f"Trade {i+1}: {trade.get('BuySell', '')} {trade.get('Quantity', '')} {trade.get('Symbol', '')} @ ${trade.get('FillPrice', '')}"):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.write(f"**Time:** {trade.get('DateTime', '')}")
+                        st.write(f"**Symbol:** {trade.get('Symbol', '')}")
+                        st.write(f"**Action:** {trade.get('BuySell', '')}")
+                        st.write(f"**Quantity:** {trade.get('Quantity', '')}")
+                        st.write(f"**Order Type:** {trade.get('OrderType', '')}")
+                    
+                    with col2:
+                        st.write(f"**Fill Price:** ${trade.get('FillPrice', '')}")
+                        st.write(f"**Position Qty:** {trade.get('PositionQuantity', '')}")
+                        st.write(f"**Open/Close:** {trade.get('OpenClose', '')}")
+                        st.write(f"**Order ID:** {trade.get('InternalOrderID', '')}")
+                        
+                        # Add tagging functionality
+                        tag_key = f"trade_tag_{i}"
+                        trade_tag = st.text_input(
+                            "Add Tag/Note:",
+                            value=trade.get('user_tag', ''),
+                            key=tag_key,
+                            placeholder="e.g., 'good entry', 'revenge trade', 'took profit too early'"
+                        )
+                        
+                        if trade_tag != trade.get('user_tag', ''):
+                            trade['user_tag'] = trade_tag
+                            st.session_state.trade_data = filtered_trades
+        
+        elif has_existing_data:
+            st.info("📋 Detailed trade log not available for previously saved data. Upload the original file again to see individual trades.")
+        
         # Save/Export functionality
         st.markdown("---")
         col1, col2, col3 = st.columns(3)
