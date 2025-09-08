@@ -1,6 +1,16 @@
 {
   "2025-09-08": {
-    "morning": {},
+    "morning": {
+      "sleep_quality": 9,
+      "emotional_state": "Calm & Focused",
+      "post_night_shift": true,
+      "checked_news": true,
+      "triggers_present": "Back to back nights",
+      "grateful_for": "my brain",
+      "daily_goal": "use patience",
+      "trading_process": "let price come to me",
+      "morning_screenshots": []
+    },
     "trading": {},
     "evening": {},
     "rules": [
