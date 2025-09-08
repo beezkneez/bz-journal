@@ -730,6 +730,69 @@ elif page == "📊 Trade Log Analysis":
     if st.session_state.trade_analysis:
     # Display analysis if available (either from existing data or new upload)
     if st.session_state.trade_analysis:
+# ======== TRADE LOG ANALYSIS PAGE - UPDATED TO USE SELECTED DATE WITH PROPER STATE MANAGEMENT ========
+elif page == "📊 Trade Log Analysis":
+    st.markdown('<div class="section-header">📊 Trade Log Analysis</div>', unsafe_allow_html=True)
+    
+    # Clear session state if date changed
+    if st.session_state.last_analysis_date != date_key:
+        st.session_state.trade_analysis = None
+        st.session_state.trade_data = None
+        st.session_state.last_analysis_date = date_key
+    
+    # Display selected date at the top
+    st.markdown(f"### 📅 Analyzing trade log for: {selected_date.strftime('%A, %B %d, %Y')}")
+    
+    # Check if there's existing trade log data for this date
+    existing_trade_log = current_entry.get('trade_log', {})
+    has_existing_data = bool(existing_trade_log.get('analysis'))
+    
+    if has_existing_data:
+        st.success(f"✅ Trade log data found for {selected_date.strftime('%B %d, %Y')}!")
+        
+        # Load existing data into session state for display
+        if not st.session_state.trade_analysis:
+            st.session_state.trade_analysis = existing_trade_log.get('analysis', {})
+        
+        # Show option to view existing or upload new
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("👁️ View Existing Trade Log", key="view_existing"):
+                # Display existing data
+                st.session_state.trade_analysis = existing_trade_log.get('analysis', {})
+        with col2:
+            if st.button("🔄 Replace with New Upload", key="replace_upload"):
+                # Clear existing data to allow new upload
+                st.session_state.trade_analysis = None
+                st.session_state.trade_data = None
+                st.info("Upload a new file below to replace existing data.")
+    
+    # File upload section - only show if no existing data or user wants to replace
+    if not has_existing_data or st.session_state.trade_analysis is None:
+        st.subheader("📄 Upload Trade Log")
+        
+        uploaded_file = st.file_uploader(
+            f"Upload trade log for {selected_date.strftime('%B %d, %Y')} (CSV or TSV format)",
+            type=['txt', 'csv', 'tsv'],
+            help="Upload trade logs from your broker (e.g., TradeActivityLogExport files)",
+            key=f"trade_log_upload_{date_key}"  # Unique key per date
+        )
+        
+        if uploaded_file is not None:
+            # Read and parse file
+            file_content = uploaded_file.read().decode('utf-8')
+            trades, error = parse_trade_log(file_content)
+            
+            if error:
+                st.error(f"Error parsing file: {error}")
+            else:
+                # Store in session state
+                st.session_state.trade_data = trades
+                st.session_state.trade_analysis = analyze_trades(trades)
+                st.success(f"✅ Successfully parsed {len(trades)} trade records for {selected_date.strftime('%B %d, %Y')}!")
+    
+    # Display analysis if available (either from existing data or new upload)
+    if st.session_state.trade_analysis:
         analysis = st.session_state.trade_analysis
         
         # If we loaded existing data but don't have trade_data, we can still show analysis
