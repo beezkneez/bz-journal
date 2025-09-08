@@ -312,6 +312,25 @@ try:
         st.sidebar.write(f"Token starts with: {st.secrets.github.token[:10]}...")
         st.sidebar.write(f"Owner: {st.secrets.github.owner}")
         st.sidebar.write(f"Repo: {st.secrets.github.repo}")
+        
+        # Manual connection test
+        if st.sidebar.button("🔗 Test Connection"):
+            test_storage = GitHubStorage()
+            with st.sidebar:
+                with st.spinner("Testing connection..."):
+                    if test_storage.connect(st.secrets.github.token, st.secrets.github.owner, st.secrets.github.repo):
+                        st.success("✅ Connection successful!")
+                        st.session_state.github_connected = True
+                        st.session_state.github_token = st.secrets.github.token
+                        st.session_state.repo_owner = st.secrets.github.owner
+                        st.session_state.repo_name = st.secrets.github.repo
+                        st.session_state.github_storage = test_storage
+                        st.rerun()
+                    else:
+                        st.error("❌ Connection failed!")
+                        st.write("Check if repo exists and is public:")
+                        st.write(f"https://github.com/{st.secrets.github.owner}/{st.secrets.github.repo}")
+        
     else:
         st.sidebar.write("❌ No secrets found")
 except Exception as e:
