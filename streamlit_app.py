@@ -1236,8 +1236,15 @@ elif page == "📈 Trading Review":
         pnl = st.number_input(
             "P&L for the Day ($)",
             value=current_entry['trading'].get('pnl', 0.0),
-            format="%.2f"
+            format="%.2f",
+            help="Manual entry or synced from Trade Log Analysis"
         )
+        
+        # Show if P&L is synced from trade log
+        if current_entry['trading'].get('trade_log_sync', False):
+            gross_pnl = current_entry['trading'].get('gross_pnl', 0)
+            commissions = current_entry['trading'].get('commissions', 0)
+            st.info(f"🔄 P&L synced from Trade Log: Gross ${gross_pnl:.2f} - Commissions ${commissions:.2f} = Net ${pnl:.2f}")
         
         process_grade = st.selectbox(
             "Grade Your Process (A-F)",
