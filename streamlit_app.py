@@ -681,49 +681,95 @@ elif page == "📊 Trade Log Analysis":
             )
             st.plotly_chart(fig, use_container_width=True)
         
-        # Price Distribution
-        if analysis.get('prices'):
-            st.subheader("💰 Price Distribution")
-            fig = go.Figure(data=[
-                go.Histogram(x=analysis['prices'], nbinsx=20, marker_color='#1de9b6')
-            ])
-            fig.update_layout(
-                title="Fill Price Distribution",
-                xaxis_title="Price ($)",
-                yaxis_title="Frequency",
-                template="plotly_dark"
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # Position Flow Chart
+        # Running P&L Chart
         if analysis['positions']:
-            st.subheader("📊 Position Flow")
+            st.subheader("💰 Running P&L")
+            
+            # Calculate running P&L
             positions = analysis['positions']
+            running_pnl = []
+            cumulative_pnl = 0
             times = []
-            position_qtys = []
+            open_positions = {}  # Track open positions by symbol
             
             for pos in positions:
-                if pos['time'] and pos['position_qty'] != '':
-                    times.append(pos['time'])
-                    position_qtys.append(pos['position_qty'])
+                if not pos['time'] or pos['price'] <= 0:
+                    continue
+                    
+                symbol = pos['symbol']
+                if symbol not in open_positions:
+                    open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
+                
+                pnl_change = 0
+                
+                if pos['open_close'] == 'Open':
+                    # Opening position - no immediate P&L but track for future closes
+                    if pos['action'] == 'Buy':
+                        open_positions[symbol]['total_cost'] += pos['quantity'] * pos['price']
+                        open_positions[symbol]['qty'] += pos['quantity']
+                    else:  # Sell
+                        open_positions[symbol]['total_cost'] -= pos['quantity'] * pos['price']
+                        open_positions[symbol]['qty'] -= pos['quantity']
+                
+                elif pos['open_close'] == 'Close':
+                    # Closing position - calculate realized P&L
+                    if pos['action'] == 'Sell':
+                        # Closing long position
+                        if open_positions[symbol]['qty'] > 0:
+                            avg_price = open_positions[symbol]['total_cost'] / open_positions[symbol]['qty'] if open_positions[symbol]['qty'] != 0 else 0
+                            pnl_change = pos['quantity'] * (pos['price'] - avg_price)
+                            # Reduce position
+                            close_cost = pos['quantity'] * avg_price
+                            open_positions[symbol]['total_cost'] -= close_cost
+                            open_positions[symbol]['qty'] -= pos['quantity']
+                    else:  # Buy
+                        # Closing short position
+                        if open_positions[symbol]['qty'] < 0:
+                            avg_price = abs(open_positions[symbol]['total_cost'] / open_positions[symbol]['qty']) if open_positions[symbol]['qty'] != 0 else 0
+                            pnl_change = pos['quantity'] * (avg_price - pos['price'])
+                            # Reduce position
+                            close_cost = pos['quantity'] * avg_price
+                            open_positions[symbol]['total_cost'] += close_cost
+                            open_positions[symbol]['qty'] += pos['quantity']
+                
+                cumulative_pnl += pnl_change
+                running_pnl.append(cumulative_pnl)
+                times.append(pos['time'])
             
-            if times and position_qtys:
+            if times and running_pnl:
                 fig = go.Figure()
+                
+                # Color the line based on P&L
+                colors = ['green' if pnl >= 0 else 'red' for pnl in running_pnl]
+                
                 fig.add_trace(go.Scatter(
                     x=times,
-                    y=position_qtys,
+                    y=running_pnl,
                     mode='lines+markers',
-                    name='Position Size',
-                    line=dict(color='#64ffda'),
-                    marker=dict(size=6)
+                    name='Running P&L',
+                    line=dict(color='#64ffda', width=2),
+                    marker=dict(size=4, color=colors),
+                    fill='tonexty' if running_pnl[0] >= 0 else 'tozeroy',
+                    fillcolor='rgba(100, 255, 218, 0.1)' if running_pnl[-1] >= 0 else 'rgba(255, 100, 100, 0.1)'
                 ))
+                
+                # Add zero line
+                fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
+                
                 fig.update_layout(
-                    title="Position Size Over Time",
+                    title="Running P&L Throughout Trading Session",
                     xaxis_title="Time",
-                    yaxis_title="Position Quantity",
-                    template="plotly_dark"
+                    yaxis_title="Cumulative P&L ($)",
+                    template="plotly_dark",
+                    showlegend=False
                 )
+                
                 st.plotly_chart(fig, use_container_width=True)
+                
+                # Display final P&L
+                final_pnl = running_pnl[-1] if running_pnl else 0
+                pnl_color = "green" if final_pnl >= 0 else "red"
+                st.markdown(f"**Final Session P&L:** <span style='color: {pnl_color}'>${final_pnl:.2f}</span>", unsafe_allow_html=True)
         
         # Detailed Trade List
         st.subheader("📋 Detailed Trade Log")
