@@ -261,18 +261,18 @@ def display_image_full_size(image_source, caption="Screenshot"):
             except:
                 st.error(f"Could not load image: {image_source}")
 
-# Initialize session state
+# Initialize session state - CALENDAR VIEW FIRST!
 if 'current_date' not in st.session_state:
     st.session_state.current_date = date.today()
 if 'page' not in st.session_state:
-    st.session_state.page = "🌅 Morning Prep"
+    st.session_state.page = "📊 Calendar View"  # STARTS ON CALENDAR!
 if 'github_connected' not in st.session_state:
     st.session_state.github_connected = False
 if 'github_storage' not in st.session_state:
     st.session_state.github_storage = GitHubStorage()
 
-# Main header
-st.markdown('<h1 class="main-header">📊 Trading Journal</h1>', unsafe_allow_html=True)
+# Main header - CLEAR VERSION INDICATOR
+st.markdown('<h1 class="main-header">📊 Trading Journal v6.0 - CALENDAR FIRST!</h1>', unsafe_allow_html=True)
 
 # GitHub connection check and auto-setup
 if hasattr(st, 'secrets') and 'github' in st.secrets:
@@ -295,11 +295,14 @@ if st.session_state.get('github_connected', False):
 else:
     st.sidebar.warning("⚠️ GitHub not connected")
 
-# Sidebar navigation with buttons
+# Sidebar navigation with buttons - CALENDAR FIRST!
 st.sidebar.markdown("---")
 st.sidebar.title("📋 Navigation")
 
-# Navigation buttons
+# Navigation buttons - CALENDAR VIEW FIRST!
+if st.sidebar.button("📊 Calendar View", key="nav_calendar", use_container_width=True):
+    st.session_state.page = "📊 Calendar View"
+
 if st.sidebar.button("🌅 Morning Prep", key="nav_morning", use_container_width=True):
     st.session_state.page = "🌅 Morning Prep"
 
@@ -308,9 +311,6 @@ if st.sidebar.button("📈 Trading Review", key="nav_trading", use_container_wid
 
 if st.sidebar.button("🌙 Evening Recap", key="nav_evening", use_container_width=True):
     st.session_state.page = "🌙 Evening Recap"
-
-if st.sidebar.button("📊 Calendar View", key="nav_calendar", use_container_width=True):
-    st.session_state.page = "📊 Calendar View"
 
 if st.sidebar.button("📚 Historical Analysis", key="nav_history", use_container_width=True):
     st.session_state.page = "📚 Historical Analysis"
@@ -354,403 +354,8 @@ if date_key not in data:
 
 current_entry = data[date_key]
 
-# ======== MORNING PREP PAGE ========
-if page == "🌅 Morning Prep":
-    st.markdown('<div class="section-header">🌅 Morning Preparation</div>', unsafe_allow_html=True)
-    
-    # Show current date and delete option
-    col1, col2, col3 = st.columns([3, 1, 1])
-    with col1:
-        st.markdown(f"### 📅 {selected_date.strftime('%A, %B %d, %Y')}")
-    with col2:
-        if st.button("🗑️ Delete Entry", key="delete_morning", help="Delete all data for this date"):
-            if date_key in data:
-                del data[date_key]
-                if st.session_state.get('github_connected', False):
-                    st.session_state.github_storage.save_journal_entry(date_key, {}, data)
-                save_local_data(data)
-                st.success("Entry deleted!")
-                st.rerun()
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Personal Check-in")
-        
-        sleep_quality = st.slider(
-            "Sleep Quality (1-10)",
-            1, 10,
-            value=current_entry['morning'].get('sleep_quality', 7),
-            key="sleep_quality"
-        )
-        
-        emotional_state = st.selectbox(
-            "Emotional State",
-            ["Calm & Focused", "Excited", "Anxious", "Stressed", "Tired", "Confident", "Uncertain"],
-            index=["Calm & Focused", "Excited", "Anxious", "Stressed", "Tired", "Confident", "Uncertain"].index(
-                current_entry['morning'].get('emotional_state', "Calm & Focused")
-            )
-        )
-        
-        post_night_shift = st.checkbox(
-            "Post Night Shift?",
-            value=current_entry['morning'].get('post_night_shift', False)
-        )
-        
-        checked_news = st.checkbox(
-            "Checked News & Market Events?",
-            value=current_entry['morning'].get('checked_news', False)
-        )
-        
-        triggers_present = st.text_area(
-            "Any triggers/reasons why you shouldn't trade today?",
-            value=current_entry['morning'].get('triggers_present', ""),
-            height=100
-        )
-        
-        grateful_for = st.text_area(
-            "What are you grateful for today?",
-            value=current_entry['morning'].get('grateful_for', ""),
-            height=100
-        )
-        
-        # Screenshot upload for morning prep
-        st.subheader("📸 Morning Screenshots")
-        morning_screenshot = st.file_uploader(
-            "Upload market analysis, news, or prep screenshots",
-            type=['png', 'jpg', 'jpeg'],
-            key="morning_screenshot",
-            help="Upload full-size screenshots - they'll be displayed at full resolution"
-        )
-        
-        # Display existing morning screenshots at full size
-        if 'morning_screenshots' in current_entry['morning']:
-            for i, screenshot_link in enumerate(current_entry['morning']['morning_screenshots']):
-                if screenshot_link:
-                    st.markdown(f"**Morning Screenshot {i+1}:**")
-                    display_image_full_size(screenshot_link, f"Morning Screenshot {i+1}")
-    
-    with col2:
-        st.subheader("Trading Goals & Rules")
-        
-        daily_goal = st.text_area(
-            "Daily Trading Goal",
-            value=current_entry['morning'].get('daily_goal', ""),
-            height=100
-        )
-        
-        trading_process = st.text_area(
-            "Trading Process Focus",
-            value=current_entry['morning'].get('trading_process', ""),
-            height=100
-        )
-        
-        st.subheader("Trading Rules")
-        
-        # Display existing rules
-        if 'rules' not in current_entry:
-            current_entry['rules'] = []
-        
-        # Keep track of rules to delete
-        rules_to_delete = []
-        
-        for i, rule in enumerate(current_entry['rules']):
-            col_rule, col_delete = st.columns([4, 1])
-            with col_rule:
-                new_rule_value = st.text_input(
-                    f"Rule {i+1}",
-                    value=rule,
-                    key=f"rule_{i}",
-                    placeholder="Enter your trading rule here..."
-                )
-                # Update the rule in real-time
-                current_entry['rules'][i] = new_rule_value
-            with col_delete:
-                if st.button("❌", key=f"delete_rule_{i}"):
-                    rules_to_delete.append(i)
-        
-        # Remove deleted rules (in reverse order to maintain indices)
-        for i in reversed(rules_to_delete):
-            current_entry['rules'].pop(i)
-            # Save immediately
-            if st.session_state.get('github_connected', False):
-                st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
-            save_local_data(data)
-            st.rerun()
-        
-        if st.button("➕ Add Rule"):
-            current_entry['rules'].append("New rule - click to edit")
-            # Save immediately
-            if st.session_state.get('github_connected', False):
-                st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
-            save_local_data(data)
-            st.rerun()
-    
-    # Save morning data
-    if st.button("💾 Save Morning Prep", type="primary"):
-        # Handle screenshot upload
-        morning_screenshots = current_entry['morning'].get('morning_screenshots', [])
-        if morning_screenshot:
-            if st.session_state.get('github_connected', False):
-                # Upload to GitHub
-                file_data = morning_screenshot.getvalue()
-                screenshot_url = st.session_state.github_storage.upload_screenshot(
-                    file_data, f"morning_{morning_screenshot.name}", date_key
-                )
-                if screenshot_url:
-                    morning_screenshots.append(screenshot_url)
-                    st.success(f"✅ Screenshot uploaded to GitHub!")
-            else:
-                # Save locally
-                screenshot_path = save_uploaded_file_local(morning_screenshot, date_key, "morning")
-                if screenshot_path:
-                    morning_screenshots.append(screenshot_path)
-        
-        current_entry['morning'] = {
-            'sleep_quality': sleep_quality,
-            'emotional_state': emotional_state,
-            'post_night_shift': post_night_shift,
-            'checked_news': checked_news,
-            'triggers_present': triggers_present,
-            'grateful_for': grateful_for,
-            'daily_goal': daily_goal,
-            'trading_process': trading_process,
-            'morning_screenshots': morning_screenshots
-        }
-        
-        # Save to GitHub and local
-        if st.session_state.get('github_connected', False):
-            if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
-                st.success("✅ Morning prep saved to GitHub!")
-            else:
-                save_local_data(data)
-                st.success("💾 Morning prep saved locally!")
-        else:
-            save_local_data(data)
-            st.success("💾 Morning prep saved locally!")
-
-# ======== TRADING REVIEW PAGE ========
-elif page == "📈 Trading Review":
-    st.markdown('<div class="section-header">📈 Post-Trading Review</div>', unsafe_allow_html=True)
-    
-    # Show current date and delete option
-    col1, col2, col3 = st.columns([3, 1, 1])
-    with col1:
-        st.markdown(f"### 📅 {selected_date.strftime('%A, %B %d, %Y')}")
-    with col2:
-        if st.button("🗑️ Delete Entry", key="delete_trading", help="Delete all data for this date"):
-            if date_key in data:
-                del data[date_key]
-                if st.session_state.get('github_connected', False):
-                    st.session_state.github_storage.save_journal_entry(date_key, {}, data)
-                save_local_data(data)
-                st.success("Entry deleted!")
-                st.rerun()
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Performance Metrics")
-        
-        pnl = st.number_input(
-            "P&L for the Day ($)",
-            value=current_entry['trading'].get('pnl', 0.0),
-            format="%.2f"
-        )
-        
-        process_grade = st.selectbox(
-            "Grade Your Process (A-F)",
-            ["A", "B", "C", "D", "F"],
-            index=["A", "B", "C", "D", "F"].index(
-                current_entry['trading'].get('process_grade', "A")
-            )
-        )
-        
-        grade_reasoning = st.text_area(
-            "Why did you grade yourself this way?",
-            value=current_entry['trading'].get('grade_reasoning', ""),
-            height=100
-        )
-        
-        general_comments = st.text_area(
-            "General comments on the trading day",
-            value=current_entry['trading'].get('general_comments', ""),
-            height=100
-        )
-        
-        screenshot_notes = st.text_area(
-            "Screenshot/Entry Notes",
-            value=current_entry['trading'].get('screenshot_notes', ""),
-            height=100,
-            help="Describe your entries, exits, and any screenshots you took"
-        )
-        
-        # Screenshot upload for trading
-        st.subheader("📸 Trading Screenshots")
-        trading_screenshot = st.file_uploader(
-            "Upload entry/exit screenshots, charts, or P&L",
-            type=['png', 'jpg', 'jpeg'],
-            key="trading_screenshot",
-            help="Upload full-size screenshots - they'll be displayed at full resolution"
-        )
-        
-        # Display existing trading screenshots at full size
-        if 'trading_screenshots' in current_entry['trading']:
-            for i, screenshot_link in enumerate(current_entry['trading']['trading_screenshots']):
-                if screenshot_link:
-                    st.markdown(f"**Trading Screenshot {i+1}:**")
-                    display_image_full_size(screenshot_link, f"Trading Screenshot {i+1}")
-    
-    with col2:
-        st.subheader("Rule Compliance")
-        
-        if current_entry['rules']:
-            rule_compliance = {}
-            for i, rule in enumerate(current_entry['rules']):
-                if rule.strip():  # Only show non-empty rules
-                    compliance = st.checkbox(
-                        f"✅ {rule}",
-                        value=current_entry['trading'].get('rule_compliance', {}).get(f"rule_{i}", False),
-                        key=f"compliance_{i}"
-                    )
-                    rule_compliance[f"rule_{i}"] = compliance
-        else:
-            st.info("No rules set in morning prep. Go to Morning Prep to add rules.")
-            rule_compliance = {}
-        
-        st.subheader("Reflection")
-        
-        what_could_improve = st.text_area(
-            "What could you have done better?",
-            value=current_entry['trading'].get('what_could_improve', ""),
-            height=100
-        )
-        
-        tomorrow_focus = st.text_area(
-            "What do you want to do better tomorrow?",
-            value=current_entry['trading'].get('tomorrow_focus', ""),
-            height=100
-        )
-    
-    # Calculate overall compliance
-    if rule_compliance:
-        compliance_rate = sum(rule_compliance.values()) / len(rule_compliance) * 100
-        st.metric("Rule Compliance Rate", f"{compliance_rate:.1f}%")
-    
-    # Save trading data
-    if st.button("💾 Save Trading Review", type="primary"):
-        # Handle screenshot upload
-        trading_screenshots = current_entry['trading'].get('trading_screenshots', [])
-        if trading_screenshot:
-            if st.session_state.get('github_connected', False):
-                # Upload to GitHub
-                file_data = trading_screenshot.getvalue()
-                screenshot_url = st.session_state.github_storage.upload_screenshot(
-                    file_data, f"trading_{trading_screenshot.name}", date_key
-                )
-                if screenshot_url:
-                    trading_screenshots.append(screenshot_url)
-                    st.success(f"✅ Screenshot uploaded to GitHub!")
-            else:
-                # Save locally
-                screenshot_path = save_uploaded_file_local(trading_screenshot, date_key, "trading")
-                if screenshot_path:
-                    trading_screenshots.append(screenshot_path)
-        
-        current_entry['trading'] = {
-            'pnl': pnl,
-            'process_grade': process_grade,
-            'grade_reasoning': grade_reasoning,
-            'general_comments': general_comments,
-            'screenshot_notes': screenshot_notes,
-            'rule_compliance': rule_compliance,
-            'what_could_improve': what_could_improve,
-            'tomorrow_focus': tomorrow_focus,
-            'trading_screenshots': trading_screenshots
-        }
-        
-        # Save to GitHub and local
-        if st.session_state.get('github_connected', False):
-            if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
-                st.success("✅ Trading review saved to GitHub!")
-            else:
-                save_local_data(data)
-                st.success("💾 Trading review saved locally!")
-        else:
-            save_local_data(data)
-            st.success("💾 Trading review saved locally!")
-
-# ======== EVENING RECAP PAGE ========
-elif page == "🌙 Evening Recap":
-    st.markdown('<div class="section-header">🌙 Evening Life Recap</div>', unsafe_allow_html=True)
-    
-    # Show current date and delete option
-    col1, col2, col3 = st.columns([3, 1, 1])
-    with col1:
-        st.markdown(f"### 📅 {selected_date.strftime('%A, %B %d, %Y')}")
-    with col2:
-        if st.button("🗑️ Delete Entry", key="delete_evening", help="Delete all data for this date"):
-            if date_key in data:
-                del data[date_key]
-                if st.session_state.get('github_connected', False):
-                    st.session_state.github_storage.save_journal_entry(date_key, {}, data)
-                save_local_data(data)
-                st.success("Entry deleted!")
-                st.rerun()
-    
-    st.subheader("Personal Reflection")
-    st.write("Reflect on your day as a person, father, and husband")
-    
-    personal_recap = st.text_area(
-        "How was your day outside of trading?",
-        value=current_entry['evening'].get('personal_recap', ""),
-        height=200,
-        help="Reflect on family time, personal goals, relationships, and overall well-being"
-    )
-    
-    family_highlights = st.text_area(
-        "Family Highlights",
-        value=current_entry['evening'].get('family_highlights', ""),
-        height=150,
-        help="Special moments with family, conversations with spouse/children"
-    )
-    
-    personal_wins = st.text_area(
-        "Personal Wins & Growth",
-        value=current_entry['evening'].get('personal_wins', ""),
-        height=150,
-        help="Non-trading accomplishments, personal development, habits"
-    )
-    
-    tomorrow_intentions = st.text_area(
-        "Intentions for Tomorrow",
-        value=current_entry['evening'].get('tomorrow_intentions', ""),
-        height=150,
-        help="How do you want to show up as a person, father, and husband tomorrow?"
-    )
-    
-    # Save evening data
-    if st.button("💾 Save Evening Recap", type="primary"):
-        current_entry['evening'] = {
-            'personal_recap': personal_recap,
-            'family_highlights': family_highlights,
-            'personal_wins': personal_wins,
-            'tomorrow_intentions': tomorrow_intentions
-        }
-        
-        # Save to GitHub and local
-        if st.session_state.get('github_connected', False):
-            if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
-                st.success("✅ Evening recap saved to GitHub!")
-            else:
-                save_local_data(data)
-                st.success("💾 Evening recap saved locally!")
-        else:
-            save_local_data(data)
-            st.success("💾 Evening recap saved locally!")
-
 # ======== CALENDAR VIEW PAGE ========
-elif page == "📊 Calendar View":
+if page == "📊 Calendar View":
     st.markdown('<div class="section-header">📊 Monthly Calendar</div>', unsafe_allow_html=True)
     
     # Month selector
@@ -865,6 +470,455 @@ elif page == "📊 Calendar View":
     with col4:
         st.markdown("💡 **Click View/Add to edit entries**")
 
+# ======== MORNING PREP PAGE ========
+elif page == "🌅 Morning Prep":
+    st.markdown('<div class="section-header">🌅 Morning Preparation</div>', unsafe_allow_html=True)
+    
+    # Show current date and delete option
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown(f"### 📅 {selected_date.strftime('%A, %B %d, %Y')}")
+    with col2:
+        if st.button("🗑️ Delete Entry", key="delete_morning", help="Delete all data for this date"):
+            if date_key in data:
+                del data[date_key]
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry(date_key, {}, data)
+                save_local_data(data)
+                st.success("Entry deleted!")
+                st.rerun()
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Personal Check-in")
+        
+        sleep_quality = st.slider(
+            "Sleep Quality (1-10)",
+            1, 10,
+            value=current_entry['morning'].get('sleep_quality', 7),
+            key="sleep_quality"
+        )
+        
+        emotional_state = st.selectbox(
+            "Emotional State",
+            ["Calm & Focused", "Excited", "Anxious", "Stressed", "Tired", "Confident", "Uncertain"],
+            index=["Calm & Focused", "Excited", "Anxious", "Stressed", "Tired", "Confident", "Uncertain"].index(
+                current_entry['morning'].get('emotional_state', "Calm & Focused")
+            )
+        )
+        
+        post_night_shift = st.checkbox(
+            "Post Night Shift?",
+            value=current_entry['morning'].get('post_night_shift', False)
+        )
+        
+        checked_news = st.checkbox(
+            "Checked News & Market Events?",
+            value=current_entry['morning'].get('checked_news', False)
+        )
+        
+        triggers_present = st.text_area(
+            "Any triggers/reasons why you shouldn't trade today?",
+            value=current_entry['morning'].get('triggers_present', ""),
+            height=100
+        )
+        
+        grateful_for = st.text_area(
+            "What are you grateful for today?",
+            value=current_entry['morning'].get('grateful_for', ""),
+            height=100
+        )
+        
+        # Screenshot upload for morning prep WITH CAPTIONS
+        st.subheader("📸 Morning Screenshots")
+        morning_screenshot = st.file_uploader(
+            "Upload market analysis, news, or prep screenshots",
+            type=['png', 'jpg', 'jpeg'],
+            key="morning_screenshot"
+        )
+        
+        # Caption for morning screenshot
+        morning_caption = ""
+        if morning_screenshot:
+            morning_caption = st.text_input(
+                "Screenshot Caption",
+                placeholder="Describe this screenshot...",
+                key="morning_caption"
+            )
+        
+        # Display existing morning screenshots
+        if 'morning_screenshots' in current_entry['morning']:
+            for i, screenshot_data in enumerate(current_entry['morning']['morning_screenshots']):
+                if screenshot_data:
+                    # Handle both old format (just URL) and new format (dict with URL and caption)
+                    if isinstance(screenshot_data, dict):
+                        screenshot_link = screenshot_data.get('url', '')
+                        screenshot_caption = screenshot_data.get('caption', f"Morning Screenshot {i+1}")
+                    else:
+                        screenshot_link = screenshot_data
+                        screenshot_caption = f"Morning Screenshot {i+1}"
+                    
+                    if screenshot_link:
+                        st.markdown(f"**{screenshot_caption}:**")
+                        display_image_full_size(screenshot_link, screenshot_caption)
+    
+    with col2:
+        st.subheader("Trading Goals & Rules")
+        
+        daily_goal = st.text_area(
+            "Daily Trading Goal",
+            value=current_entry['morning'].get('daily_goal', ""),
+            height=100
+        )
+        
+        trading_process = st.text_area(
+            "Trading Process Focus",
+            value=current_entry['morning'].get('trading_process', ""),
+            height=100
+        )
+        
+        st.subheader("Trading Rules")
+        
+        # Display existing rules
+        if 'rules' not in current_entry:
+            current_entry['rules'] = []
+        
+        # Keep track of rules to delete
+        rules_to_delete = []
+        
+        for i, rule in enumerate(current_entry['rules']):
+            col_rule, col_delete = st.columns([4, 1])
+            with col_rule:
+                new_rule_value = st.text_input(
+                    f"Rule {i+1}",
+                    value=rule,
+                    key=f"rule_{i}",
+                    placeholder="Enter your trading rule here..."
+                )
+                # Update the rule in real-time
+                current_entry['rules'][i] = new_rule_value
+            with col_delete:
+                if st.button("❌", key=f"delete_rule_{i}"):
+                    rules_to_delete.append(i)
+        
+        # Remove deleted rules (in reverse order to maintain indices)
+        for i in reversed(rules_to_delete):
+            current_entry['rules'].pop(i)
+            # Save immediately
+            if st.session_state.get('github_connected', False):
+                st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+            save_local_data(data)
+            st.rerun()
+        
+        if st.button("➕ Add Rule"):
+            current_entry['rules'].append("New rule - click to edit")
+            # Save immediately
+            if st.session_state.get('github_connected', False):
+                st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+            save_local_data(data)
+            st.rerun()
+    
+    # Save morning data
+    if st.button("💾 Save Morning Prep", type="primary"):
+        # Handle screenshot upload WITH CAPTION
+        morning_screenshots = current_entry['morning'].get('morning_screenshots', [])
+        if morning_screenshot:
+            if not morning_caption.strip():
+                st.warning("⚠️ Please add a caption for your screenshot!")
+            else:
+                if st.session_state.get('github_connected', False):
+                    # Upload to GitHub
+                    file_data = morning_screenshot.getvalue()
+                    screenshot_url = st.session_state.github_storage.upload_screenshot(
+                        file_data, f"morning_{morning_screenshot.name}", date_key
+                    )
+                    if screenshot_url:
+                        # Save as dict with URL and caption
+                        morning_screenshots.append({
+                            'url': screenshot_url,
+                            'caption': morning_caption
+                        })
+                        st.success(f"✅ Screenshot '{morning_caption}' uploaded!")
+                else:
+                    # Save locally
+                    screenshot_path = save_uploaded_file_local(morning_screenshot, date_key, "morning")
+                    if screenshot_path:
+                        morning_screenshots.append({
+                            'url': screenshot_path,
+                            'caption': morning_caption
+                        })
+        
+        current_entry['morning'] = {
+            'sleep_quality': sleep_quality,
+            'emotional_state': emotional_state,
+            'post_night_shift': post_night_shift,
+            'checked_news': checked_news,
+            'triggers_present': triggers_present,
+            'grateful_for': grateful_for,
+            'daily_goal': daily_goal,
+            'trading_process': trading_process,
+            'morning_screenshots': morning_screenshots
+        }
+        
+        # Save to GitHub and local
+        if st.session_state.get('github_connected', False):
+            if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                st.success("✅ Morning prep saved to GitHub!")
+            else:
+                save_local_data(data)
+                st.success("💾 Morning prep saved locally!")
+        else:
+            save_local_data(data)
+            st.success("💾 Morning prep saved locally!")
+
+# ======== TRADING REVIEW PAGE ========
+elif page == "📈 Trading Review":
+    st.markdown('<div class="section-header">📈 Post-Trading Review</div>', unsafe_allow_html=True)
+    
+    # Show current date and delete option
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown(f"### 📅 {selected_date.strftime('%A, %B %d, %Y')}")
+    with col2:
+        if st.button("🗑️ Delete Entry", key="delete_trading", help="Delete all data for this date"):
+            if date_key in data:
+                del data[date_key]
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry(date_key, {}, data)
+                save_local_data(data)
+                st.success("Entry deleted!")
+                st.rerun()
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Performance Metrics")
+        
+        pnl = st.number_input(
+            "P&L for the Day ($)",
+            value=current_entry['trading'].get('pnl', 0.0),
+            format="%.2f"
+        )
+        
+        process_grade = st.selectbox(
+            "Grade Your Process (A-F)",
+            ["A", "B", "C", "D", "F"],
+            index=["A", "B", "C", "D", "F"].index(
+                current_entry['trading'].get('process_grade', "A")
+            )
+        )
+        
+        grade_reasoning = st.text_area(
+            "Why did you grade yourself this way?",
+            value=current_entry['trading'].get('grade_reasoning', ""),
+            height=100
+        )
+        
+        general_comments = st.text_area(
+            "General comments on the trading day",
+            value=current_entry['trading'].get('general_comments', ""),
+            height=100
+        )
+        
+        screenshot_notes = st.text_area(
+            "Screenshot/Entry Notes",
+            value=current_entry['trading'].get('screenshot_notes', ""),
+            height=100,
+            help="Describe your entries, exits, and any screenshots you took"
+        )
+        
+        # Screenshot upload for trading WITH CAPTIONS
+        st.subheader("📸 Trading Screenshots")
+        trading_screenshot = st.file_uploader(
+            "Upload entry/exit screenshots, charts, or P&L",
+            type=['png', 'jpg', 'jpeg'],
+            key="trading_screenshot"
+        )
+        
+        # Caption for trading screenshot
+        trading_caption = ""
+        if trading_screenshot:
+            trading_caption = st.text_input(
+                "Screenshot Caption",
+                placeholder="Describe this screenshot...",
+                key="trading_caption"
+            )
+        
+        # Display existing trading screenshots
+        if 'trading_screenshots' in current_entry['trading']:
+            for i, screenshot_data in enumerate(current_entry['trading']['trading_screenshots']):
+                if screenshot_data:
+                    # Handle both old format (just URL) and new format (dict with URL and caption)
+                    if isinstance(screenshot_data, dict):
+                        screenshot_link = screenshot_data.get('url', '')
+                        screenshot_caption = screenshot_data.get('caption', f"Trading Screenshot {i+1}")
+                    else:
+                        screenshot_link = screenshot_data
+                        screenshot_caption = f"Trading Screenshot {i+1}"
+                    
+                    if screenshot_link:
+                        st.markdown(f"**{screenshot_caption}:**")
+                        display_image_full_size(screenshot_link, screenshot_caption)
+    
+    with col2:
+        st.subheader("Rule Compliance")
+        
+        if current_entry['rules']:
+            rule_compliance = {}
+            for i, rule in enumerate(current_entry['rules']):
+                if rule.strip():  # Only show non-empty rules
+                    compliance = st.checkbox(
+                        f"✅ {rule}",
+                        value=current_entry['trading'].get('rule_compliance', {}).get(f"rule_{i}", False),
+                        key=f"compliance_{i}"
+                    )
+                    rule_compliance[f"rule_{i}"] = compliance
+        else:
+            st.info("No rules set in morning prep. Go to Morning Prep to add rules.")
+            rule_compliance = {}
+        
+        st.subheader("Reflection")
+        
+        what_could_improve = st.text_area(
+            "What could you have done better?",
+            value=current_entry['trading'].get('what_could_improve', ""),
+            height=100
+        )
+        
+        tomorrow_focus = st.text_area(
+            "What do you want to do better tomorrow?",
+            value=current_entry['trading'].get('tomorrow_focus', ""),
+            height=100
+        )
+    
+    # Calculate overall compliance
+    if rule_compliance:
+        compliance_rate = sum(rule_compliance.values()) / len(rule_compliance) * 100
+        st.metric("Rule Compliance Rate", f"{compliance_rate:.1f}%")
+    
+    # Save trading data
+    if st.button("💾 Save Trading Review", type="primary"):
+        # Handle screenshot upload WITH CAPTION
+        trading_screenshots = current_entry['trading'].get('trading_screenshots', [])
+        if trading_screenshot:
+            if not trading_caption.strip():
+                st.warning("⚠️ Please add a caption for your screenshot!")
+            else:
+                if st.session_state.get('github_connected', False):
+                    # Upload to GitHub
+                    file_data = trading_screenshot.getvalue()
+                    screenshot_url = st.session_state.github_storage.upload_screenshot(
+                        file_data, f"trading_{trading_screenshot.name}", date_key
+                    )
+                    if screenshot_url:
+                        # Save as dict with URL and caption
+                        trading_screenshots.append({
+                            'url': screenshot_url,
+                            'caption': trading_caption
+                        })
+                        st.success(f"✅ Screenshot '{trading_caption}' uploaded!")
+                else:
+                    # Save locally
+                    screenshot_path = save_uploaded_file_local(trading_screenshot, date_key, "trading")
+                    if screenshot_path:
+                        trading_screenshots.append({
+                            'url': screenshot_path,
+                            'caption': trading_caption
+                        })
+        
+        current_entry['trading'] = {
+            'pnl': pnl,
+            'process_grade': process_grade,
+            'grade_reasoning': grade_reasoning,
+            'general_comments': general_comments,
+            'screenshot_notes': screenshot_notes,
+            'rule_compliance': rule_compliance,
+            'what_could_improve': what_could_improve,
+            'tomorrow_focus': tomorrow_focus,
+            'trading_screenshots': trading_screenshots
+        }
+        
+        # Save to GitHub and local
+        if st.session_state.get('github_connected', False):
+            if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                st.success("✅ Trading review saved to GitHub!")
+            else:
+                save_local_data(data)
+                st.success("💾 Trading review saved locally!")
+        else:
+            save_local_data(data)
+            st.success("💾 Trading review saved locally!")
+
+# ======== EVENING RECAP PAGE ========
+elif page == "🌙 Evening Recap":
+    st.markdown('<div class="section-header">🌙 Evening Life Recap</div>', unsafe_allow_html=True)
+    
+    # Show current date and delete option
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown(f"### 📅 {selected_date.strftime('%A, %B %d, %Y')}")
+    with col2:
+        if st.button("🗑️ Delete Entry", key="delete_evening", help="Delete all data for this date"):
+            if date_key in data:
+                del data[date_key]
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry(date_key, {}, data)
+                save_local_data(data)
+                st.success("Entry deleted!")
+                st.rerun()
+    
+    st.subheader("Personal Reflection")
+    st.write("Reflect on your day as a person, father, and husband")
+    
+    personal_recap = st.text_area(
+        "How was your day outside of trading?",
+        value=current_entry['evening'].get('personal_recap', ""),
+        height=200,
+        help="Reflect on family time, personal goals, relationships, and overall well-being"
+    )
+    
+    family_highlights = st.text_area(
+        "Family Highlights",
+        value=current_entry['evening'].get('family_highlights', ""),
+        height=150,
+        help="Special moments with family, conversations with spouse/children"
+    )
+    
+    personal_wins = st.text_area(
+        "Personal Wins & Growth",
+        value=current_entry['evening'].get('personal_wins', ""),
+        height=150,
+        help="Non-trading accomplishments, personal development, habits"
+    )
+    
+    tomorrow_intentions = st.text_area(
+        "Intentions for Tomorrow",
+        value=current_entry['evening'].get('tomorrow_intentions', ""),
+        height=150,
+        help="How do you want to show up as a person, father, and husband tomorrow?"
+    )
+    
+    # Save evening data
+    if st.button("💾 Save Evening Recap", type="primary"):
+        current_entry['evening'] = {
+            'personal_recap': personal_recap,
+            'family_highlights': family_highlights,
+            'personal_wins': personal_wins,
+            'tomorrow_intentions': tomorrow_intentions
+        }
+        
+        # Save to GitHub and local
+        if st.session_state.get('github_connected', False):
+            if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                st.success("✅ Evening recap saved to GitHub!")
+            else:
+                save_local_data(data)
+                st.success("💾 Evening recap saved locally!")
+        else:
+            save_local_data(data)
+            st.success("💾 Evening recap saved locally!")
+
 # ======== HISTORICAL ANALYSIS PAGE ========
 elif page == "📚 Historical Analysis":
     st.markdown('<div class="section-header">📚 Historical Analysis</div>', unsafe_allow_html=True)
@@ -961,7 +1015,7 @@ elif page == "📚 Historical Analysis":
                 
                 st.plotly_chart(fig, use_container_width=True)
             
-            # Detailed entries with ALL journal questions
+            # Detailed entries with ALL journal questions AND SCREENSHOTS
             st.subheader("Detailed Entries")
             
             for date_key in sorted(filtered_data.keys(), reverse=True):
@@ -995,12 +1049,23 @@ elif page == "📚 Historical Analysis":
                         if 'grateful_for' in morning and morning['grateful_for']:
                             st.write(f"**Grateful For:** {morning['grateful_for']}")
                         
-                        # Morning Screenshots at full size
-                        if 'morning_screenshots' in morning and morning['morning_screenshots']:
+                        # Morning Screenshots - FIXED!
+                        morning_screenshots = morning.get('morning_screenshots', [])
+                        if morning_screenshots:
                             st.write("**Morning Screenshots:**")
-                            for j, screenshot_link in enumerate(morning['morning_screenshots']):
-                                if screenshot_link:
-                                    display_image_full_size(screenshot_link, f"Morning Screenshot {j+1}")
+                            for j, screenshot_data in enumerate(morning_screenshots):
+                                if screenshot_data:
+                                    # Handle both old format (just URL) and new format (dict with URL and caption)
+                                    if isinstance(screenshot_data, dict):
+                                        screenshot_link = screenshot_data.get('url', '')
+                                        screenshot_caption = screenshot_data.get('caption', f"Morning Screenshot {j+1}")
+                                    else:
+                                        screenshot_link = screenshot_data
+                                        screenshot_caption = f"Morning Screenshot {j+1}"
+                                    
+                                    if screenshot_link and screenshot_link.strip():
+                                        st.write(f"*{screenshot_caption}:*")
+                                        display_image_full_size(screenshot_link, screenshot_caption)
                     
                     # Trading Section
                     if 'trading' in entry and entry['trading']:
@@ -1034,12 +1099,23 @@ elif page == "📚 Historical Analysis":
                         if 'tomorrow_focus' in trading and trading['tomorrow_focus']:
                             st.write(f"**Tomorrow Focus:** {trading['tomorrow_focus']}")
                         
-                        # Trading Screenshots at full size
-                        if 'trading_screenshots' in trading and trading['trading_screenshots']:
+                        # Trading Screenshots
+                        trading_screenshots = trading.get('trading_screenshots', [])
+                        if trading_screenshots:
                             st.write("**Trading Screenshots:**")
-                            for j, screenshot_link in enumerate(trading['trading_screenshots']):
-                                if screenshot_link:
-                                    display_image_full_size(screenshot_link, f"Trading Screenshot {j+1}")
+                            for j, screenshot_data in enumerate(trading_screenshots):
+                                if screenshot_data:
+                                    # Handle both old format (just URL) and new format (dict with URL and caption)
+                                    if isinstance(screenshot_data, dict):
+                                        screenshot_link = screenshot_data.get('url', '')
+                                        screenshot_caption = screenshot_data.get('caption', f"Trading Screenshot {j+1}")
+                                    else:
+                                        screenshot_link = screenshot_data
+                                        screenshot_caption = f"Trading Screenshot {j+1}"
+                                    
+                                    if screenshot_link:
+                                        st.write(f"*{screenshot_caption}:*")
+                                        display_image_full_size(screenshot_link, screenshot_caption)
                     
                     # Evening Section
                     if 'evening' in entry and entry['evening']:
@@ -1065,7 +1141,7 @@ elif page == "📚 Historical Analysis":
         else:
             st.info("No trading data found for the selected date range.")
 
-# Sidebar stats
+# Sidebar stats - FIXED RULE COMPLIANCE CALCULATION
 st.sidebar.markdown("---")
 st.sidebar.subheader("📊 Quick Stats")
 
@@ -1090,19 +1166,22 @@ def get_period_metrics(period_data):
     
     total_pnl = sum([entry.get('trading', {}).get('pnl', 0) for entry in period_data.values()])
     
-    # Calculate compliance rate
-    compliance_days = 0
-    total_trading_days = 0
+    # Calculate EXACT rule compliance percentage (total rules followed / total rules)
+    total_rules_followed = 0
+    total_rules_possible = 0
     
     for entry in period_data.values():
         rule_compliance = entry.get('trading', {}).get('rule_compliance', {})
         if rule_compliance:  # Only count days with trading data
-            total_trading_days += 1
-            compliance_rate = sum(rule_compliance.values()) / len(rule_compliance)
-            if compliance_rate >= 0.8:
-                compliance_days += 1
+            # Count how many rules were followed vs total rules for this day
+            rules_followed_today = sum(rule_compliance.values())
+            total_rules_today = len(rule_compliance)
+            
+            total_rules_followed += rules_followed_today
+            total_rules_possible += total_rules_today
     
-    overall_compliance = (compliance_days / total_trading_days * 100) if total_trading_days > 0 else 0
+    # Calculate exact percentage of all rules followed
+    overall_compliance = (total_rules_followed / total_rules_possible * 100) if total_rules_possible > 0 else 0
     return total_pnl, overall_compliance
 
 # Get metrics
@@ -1116,16 +1195,6 @@ with col1:
     st.metric("P&L", f"${pnl_5:.2f}")
 with col2:
     st.metric("Rules", f"{compliance_5:.1f}%")
-    # Detailed debug info for rule compliance
-    if recent_5_data:
-        total_rules_followed = 0
-        total_rules_possible = 0
-        for entry in recent_5_data.values():
-            rule_compliance = entry.get('trading', {}).get('rule_compliance', {})
-            if rule_compliance:
-                total_rules_followed += sum(rule_compliance.values())
-                total_rules_possible += len(rule_compliance)
-        st.caption(f"Debug: {total_rules_followed}/{total_rules_possible} rules")
 
 st.sidebar.markdown("**📊 Last 30 Days**")
 col1, col2 = st.sidebar.columns(2)
@@ -1133,16 +1202,6 @@ with col1:
     st.metric("P&L", f"${pnl_30:.2f}")
 with col2:
     st.metric("Rules", f"{compliance_30:.1f}%")
-    # Detailed debug info for rule compliance
-    if recent_30_data:
-        total_rules_followed = 0
-        total_rules_possible = 0
-        for entry in recent_30_data.values():
-            rule_compliance = entry.get('trading', {}).get('rule_compliance', {})
-            if rule_compliance:
-                total_rules_followed += sum(rule_compliance.values())
-                total_rules_possible += len(rule_compliance)
-        st.caption(f"Debug: {total_rules_followed}/{total_rules_possible} rules")
 
 # Export/Import functionality
 st.sidebar.markdown("---")
