@@ -50,6 +50,599 @@
       "stop when reached daily electrican wage met",
       "do not  move stops away from entry",
       "no random entries"
-    ]
+    ],
+    "trade_log": {
+      "analysis": {
+        "total_fills": 50,
+        "symbols": [
+          "F.US.mNQU25",
+          "F.US.MNQU25",
+          "F.US.ENQU25"
+        ],
+        "order_types": [
+          "Stop",
+          "Market"
+        ],
+        "buy_orders": 23,
+        "sell_orders": 27,
+        "total_volume": 92.0,
+        "prices": [
+          23736.5,
+          23746.75,
+          23751.0,
+          23752.0,
+          23851.75,
+          23866.75,
+          23865.5,
+          23865.25,
+          23871.0,
+          23854.25,
+          23849.75,
+          23830.25,
+          23835.0,
+          23853.0,
+          23851.5,
+          23866.75,
+          23858.75,
+          23858.75,
+          23850.0,
+          23842.75,
+          23836.75,
+          23822.25,
+          23816.5,
+          23808.25,
+          23831.0,
+          23850.0,
+          23855.0,
+          23855.75,
+          23856.75,
+          23868.5,
+          23860.0,
+          23877.75,
+          23868.25,
+          23855.25,
+          23861.75,
+          23858.5,
+          23867.5,
+          23875.5,
+          23872.0,
+          23871.25,
+          23878.25,
+          23883.75,
+          23879.75,
+          23885.5,
+          23880.5,
+          23883.75,
+          23878.25,
+          23875.75,
+          23873.5,
+          23880.5
+        ],
+        "times": [],
+        "positions": [
+          {
+            "time": "2025-09-08  05:49:31.441865",
+            "symbol": "F.US.mNQU25",
+            "action": "Buy",
+            "quantity": 3.0,
+            "price": 23736.5,
+            "position_qty": 3.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  06:06:38.477098",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23746.75,
+            "position_qty": 2.0,
+            "open_close": "Close",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  06:10:56.217133",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23751.0,
+            "position_qty": 1.0,
+            "open_close": "Close",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  06:11:01.187857",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23752.0,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  13:53:23.285702",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 3.0,
+            "price": 23851.75,
+            "position_qty": -3.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  13:55:32.120115",
+            "symbol": "F.US.mNQU25",
+            "action": "Buy",
+            "quantity": 3.0,
+            "price": 23866.75,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Stop"
+          },
+          {
+            "time": "2025-09-08  13:56:15.666705",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23865.5,
+            "position_qty": -1.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  13:56:15.669241",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 2.0,
+            "price": 23865.25,
+            "position_qty": -3.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  13:58:01.847385",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 3.0,
+            "price": 23871.0,
+            "position_qty": -6.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  13:58:30.653533",
+            "symbol": "F.US.mNQU25",
+            "action": "Buy",
+            "quantity": 2.0,
+            "price": 23854.25,
+            "position_qty": -4.0,
+            "open_close": "Close",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  13:59:39.567578",
+            "symbol": "F.US.mNQU25",
+            "action": "Buy",
+            "quantity": 1.0,
+            "price": 23849.75,
+            "position_qty": -3.0,
+            "open_close": "Close",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:01:46.296939",
+            "symbol": "F.US.mNQU25",
+            "action": "Buy",
+            "quantity": 1.0,
+            "price": 23830.25,
+            "position_qty": -2.0,
+            "open_close": "Close",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:01:55.295206",
+            "symbol": "F.US.mNQU25",
+            "action": "Buy",
+            "quantity": 1.0,
+            "price": 23835.0,
+            "position_qty": -1.0,
+            "open_close": "Close",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:04:01.847877",
+            "symbol": "F.US.mNQU25",
+            "action": "Buy",
+            "quantity": 1.0,
+            "price": 23853.0,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Stop"
+          },
+          {
+            "time": "2025-09-08  14:05:43.686706",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 3.0,
+            "price": 23851.5,
+            "position_qty": -3.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:07:36.387430",
+            "symbol": "F.US.mNQU25",
+            "action": "Buy",
+            "quantity": 3.0,
+            "price": 23866.75,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Stop"
+          },
+          {
+            "time": "2025-09-08  14:09:17.291716",
+            "symbol": "F.US.ENQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23858.75,
+            "position_qty": -1.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:10:32.774035",
+            "symbol": "F.US.ENQU25",
+            "action": "Buy",
+            "quantity": 1.0,
+            "price": 23858.75,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Stop"
+          },
+          {
+            "time": "2025-09-08  14:12:04.294642",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 3.0,
+            "price": 23850.0,
+            "position_qty": -3.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:13:33.942575",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23842.75,
+            "position_qty": -4.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:16:41.467190",
+            "symbol": "F.US.mNQU25",
+            "action": "Buy",
+            "quantity": 1.0,
+            "price": 23836.75,
+            "position_qty": -3.0,
+            "open_close": "Close",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:19:01.207408",
+            "symbol": "F.US.mNQU25",
+            "action": "Buy",
+            "quantity": 1.0,
+            "price": 23822.25,
+            "position_qty": -2.0,
+            "open_close": "Close",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:20:53.449173",
+            "symbol": "F.US.mNQU25",
+            "action": "Buy",
+            "quantity": 1.0,
+            "price": 23816.5,
+            "position_qty": -1.0,
+            "open_close": "Close",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:21:49.353857",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23808.25,
+            "position_qty": -2.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:23:52.577449",
+            "symbol": "F.US.mNQU25",
+            "action": "Buy",
+            "quantity": 2.0,
+            "price": 23831.0,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Stop"
+          },
+          {
+            "time": "2025-09-08  14:28:00.110584",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 2.0,
+            "price": 23850.0,
+            "position_qty": -2.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:28:43.145027",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 2.0,
+            "price": 23855.0,
+            "position_qty": -4.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:28:44.793655",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 2.0,
+            "price": 23855.75,
+            "position_qty": -6.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:28:48.057178",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 2.0,
+            "price": 23856.75,
+            "position_qty": -8.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:29:09.345686",
+            "symbol": "F.US.mNQU25",
+            "action": "Buy",
+            "quantity": 8.0,
+            "price": 23868.5,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Stop"
+          },
+          {
+            "time": "2025-09-08  14:29:48.812766",
+            "symbol": "F.US.ENQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23860.0,
+            "position_qty": -1.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:32:13.528833",
+            "symbol": "F.US.ENQU25",
+            "action": "Buy",
+            "quantity": 1.0,
+            "price": 23877.75,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Stop"
+          },
+          {
+            "time": "2025-09-08  14:32:50.142545",
+            "symbol": "F.US.ENQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23868.25,
+            "position_qty": -1.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:33:40.670821",
+            "symbol": "F.US.ENQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23855.25,
+            "position_qty": -2.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:34:05.344490",
+            "symbol": "F.US.ENQU25",
+            "action": "Buy",
+            "quantity": 2.0,
+            "price": 23861.75,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Stop"
+          },
+          {
+            "time": "2025-09-08  14:34:34.894623",
+            "symbol": "F.US.ENQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23858.5,
+            "position_qty": -1.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:36:16.757748",
+            "symbol": "F.US.ENQU25",
+            "action": "Buy",
+            "quantity": 1.0,
+            "price": 23867.5,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Stop"
+          },
+          {
+            "time": "2025-09-08  14:38:40.931028",
+            "symbol": "F.US.ENQU25",
+            "action": "Buy",
+            "quantity": 1.0,
+            "price": 23875.5,
+            "position_qty": 1.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:39:03.617720",
+            "symbol": "F.US.ENQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23872.0,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:39:54.060538",
+            "symbol": "F.US.ENQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23871.25,
+            "position_qty": -1.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:41:58.220895",
+            "symbol": "F.US.ENQU25",
+            "action": "Buy",
+            "quantity": 1.0,
+            "price": 23878.25,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Stop"
+          },
+          {
+            "time": "2025-09-08  14:42:17.683997",
+            "symbol": "F.US.ENQU25",
+            "action": "Buy",
+            "quantity": 1.0,
+            "price": 23883.75,
+            "position_qty": 1.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:44:26.791863",
+            "symbol": "F.US.ENQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23879.75,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:46:34.935418",
+            "symbol": "F.US.ENQU25",
+            "action": "Buy",
+            "quantity": 1.0,
+            "price": 23885.5,
+            "position_qty": 1.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:46:59.949437",
+            "symbol": "F.US.ENQU25",
+            "action": "Sell",
+            "quantity": 1.0,
+            "price": 23880.5,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:47:23.351540",
+            "symbol": "F.US.mNQU25",
+            "action": "Buy",
+            "quantity": 3.0,
+            "price": 23883.75,
+            "position_qty": 3.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:48:03.068486",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 3.0,
+            "price": 23878.25,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:48:06.504031",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 3.0,
+            "price": 23875.75,
+            "position_qty": -3.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:48:11.493958",
+            "symbol": "F.US.mNQU25",
+            "action": "Sell",
+            "quantity": 3.0,
+            "price": 23873.5,
+            "position_qty": -6.0,
+            "open_close": "Open",
+            "order_type": "Market"
+          },
+          {
+            "time": "2025-09-08  14:48:33.682714",
+            "symbol": "F.US.MNQU25",
+            "action": "Buy",
+            "quantity": 6.0,
+            "price": 23880.5,
+            "position_qty": 0,
+            "open_close": "Close",
+            "order_type": "Market"
+          }
+        ],
+        "hourly_activity": {},
+        "daily_pnl": 0,
+        "win_rate": 0,
+        "avg_trade_size": 1.84,
+        "high_price": 23885.5,
+        "low_price": 23736.5,
+        "avg_price": 23850.505,
+        "price_range": 149.0
+      },
+      "trade_count": 50,
+      "symbols": [
+        "F.US.mNQU25",
+        "F.US.MNQU25",
+        "F.US.ENQU25"
+      ],
+      "total_volume": 92.0,
+      "gross_pnl": -892.9999999999854,
+      "commissions": 150.0,
+      "net_pnl": -1042.9999999999854,
+      "win_rate": 50.0,
+      "pnl_high": 302.12500000001455,
+      "pnl_low": -892.9999999999854
+    }
   }
 }
