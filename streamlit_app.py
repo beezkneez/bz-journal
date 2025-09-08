@@ -1082,8 +1082,118 @@ elif page == "🌅 Morning Prep":
                 st.success("Entry deleted!")
                 st.rerun()
     
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Personal Check-in")
+        
+        sleep_quality = st.slider(
+            "Sleep Quality (1-10)",
+            1, 10,
+            value=current_entry['morning'].get('sleep_quality', 7),
+            key="sleep_quality"
+        )
+        
+        emotional_state = st.selectbox(
+            "Emotional State",
+            ["Calm & Focused", "Excited", "Anxious", "Stressed", "Tired", "Confident", "Uncertain"],
+            index=["Calm & Focused", "Excited", "Anxious", "Stressed", "Tired", "Confident", "Uncertain"].index(
+                current_entry['morning'].get('emotional_state', "Calm & Focused")
+            )
+        )
+        
+        post_night_shift = st.checkbox(
+            "Post Night Shift?",
+            value=current_entry['morning'].get('post_night_shift', False)
+        )
+        
+        checked_news = st.checkbox(
+            "Checked News & Market Events?",
+            value=current_entry['morning'].get('checked_news', False)
+        )
+        
+        triggers_present = st.text_area(
+            "Any triggers/reasons why you shouldn't trade today?",
+            value=current_entry['morning'].get('triggers_present', ""),
+            height=100
+        )
+        
+        grateful_for = st.text_area(
+            "What are you grateful for today?",
+            value=current_entry['morning'].get('grateful_for', ""),
+            height=100
+        )
+    
+    with col2:
+        st.subheader("Trading Goals & Rules")
+        
+        daily_goal = st.text_area(
+            "Daily Trading Goal",
+            value=current_entry['morning'].get('daily_goal', ""),
+            height=100
+        )
+        
+        trading_process = st.text_area(
+            "Trading Process Focus",
+            value=current_entry['morning'].get('trading_process', ""),
+            height=100
+        )
+        
+        st.subheader("Trading Rules")
+        
+        # Display existing rules
+        if 'rules' not in current_entry:
+            current_entry['rules'] = []
+        
+        # Keep track of rules to delete
+        rules_to_delete = []
+        
+        for i, rule in enumerate(current_entry['rules']):
+            col_rule, col_delete = st.columns([4, 1])
+            with col_rule:
+                new_rule_value = st.text_input(
+                    f"Rule {i+1}",
+                    value=rule,
+                    key=f"rule_{i}",
+                    placeholder="Enter your trading rule here..."
+                )
+                # Update the rule in real-time
+                current_entry['rules'][i] = new_rule_value
+            with col_delete:
+                if st.button("❌", key=f"delete_rule_{i}"):
+                    rules_to_delete.append(i)
+        
+        # Remove deleted rules (in reverse order to maintain indices)
+        for i in reversed(rules_to_delete):
+            current_entry['rules'].pop(i)
+            # Save immediately
+            if st.session_state.get('github_connected', False):
+                st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+            save_local_data(data)
+            st.rerun()
+        
+        if st.button("➕ Add Rule"):
+            current_entry['rules'].append("New rule - click to edit")
+            # Save immediately
+            if st.session_state.get('github_connected', False):
+                st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+            save_local_data(data)
+            st.rerun()
+    
     # Save morning data
     if st.button("💾 Save Morning Prep", type="primary"):
+        current_entry['morning'] = {
+            'sleep_quality': sleep_quality,
+            'emotional_state': emotional_state,
+            'post_night_shift': post_night_shift,
+            'checked_news': checked_news,
+            'triggers_present': triggers_present,
+            'grateful_for': grateful_for,
+            'daily_goal': daily_goal,
+            'trading_process': trading_process
+        }
+        
+        # Save to GitHub and local
         if st.session_state.get('github_connected', False):
             if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
                 st.success("✅ Morning prep saved to GitHub!")
@@ -1112,8 +1222,107 @@ elif page == "📈 Trading Review":
                 st.success("Entry deleted!")
                 st.rerun()
     
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Performance Metrics")
+        
+        pnl = st.number_input(
+            "P&L for the Day ($)",
+            value=current_entry['trading'].get('pnl', 0.0),
+            format="%.2f",
+            help="Manual entry or synced from Trade Log Analysis"
+        )
+        
+        # Show if P&L is synced from trade log
+        if current_entry['trading'].get('trade_log_sync', False):
+            gross_pnl = current_entry['trading'].get('gross_pnl', 0)
+            commissions = current_entry['trading'].get('commissions', 0)
+            st.info(f"🔄 P&L synced from Trade Log: Gross ${gross_pnl:.2f} - Commissions ${commissions:.2f} = Net ${pnl:.2f}")
+        
+        process_grade = st.selectbox(
+            "Grade Your Process (A-F)",
+            ["A", "B", "C", "D", "F"],
+            index=["A", "B", "C", "D", "F"].index(
+                current_entry['trading'].get('process_grade', "A")
+            )
+        )
+        
+        grade_reasoning = st.text_area(
+            "Why did you grade yourself this way?",
+            value=current_entry['trading'].get('grade_reasoning', ""),
+            height=100
+        )
+        
+        general_comments = st.text_area(
+            "General comments on the trading day",
+            value=current_entry['trading'].get('general_comments', ""),
+            height=100
+        )
+        
+        screenshot_notes = st.text_area(
+            "Screenshot/Entry Notes",
+            value=current_entry['trading'].get('screenshot_notes', ""),
+            height=100,
+            help="Describe your entries, exits, and any screenshots you took"
+        )
+    
+    with col2:
+        st.subheader("Rule Compliance")
+        
+        if current_entry['rules']:
+            rule_compliance = {}
+            for i, rule in enumerate(current_entry['rules']):
+                if rule.strip():  # Only show non-empty rules
+                    compliance = st.checkbox(
+                        f"✅ {rule}",
+                        value=current_entry['trading'].get('rule_compliance', {}).get(f"rule_{i}", False),
+                        key=f"compliance_{i}"
+                    )
+                    rule_compliance[f"rule_{i}"] = compliance
+        else:
+            st.info("No rules set in morning prep. Go to Morning Prep to add rules.")
+            rule_compliance = {}
+        
+        st.subheader("Reflection")
+        
+        what_could_improve = st.text_area(
+            "What could you have done better?",
+            value=current_entry['trading'].get('what_could_improve', ""),
+            height=100
+        )
+        
+        tomorrow_focus = st.text_area(
+            "What do you want to do better tomorrow?",
+            value=current_entry['trading'].get('tomorrow_focus', ""),
+            height=100
+        )
+    
+    # Calculate overall compliance
+    if rule_compliance:
+        compliance_rate = sum(rule_compliance.values()) / len(rule_compliance) * 100
+        st.metric("Rule Compliance Rate", f"{compliance_rate:.1f}%")
+    
     # Save trading data
     if st.button("💾 Save Trading Review", type="primary"):
+        current_entry['trading'] = {
+            'pnl': pnl,
+            'process_grade': process_grade,
+            'grade_reasoning': grade_reasoning,
+            'general_comments': general_comments,
+            'screenshot_notes': screenshot_notes,
+            'rule_compliance': rule_compliance,
+            'what_could_improve': what_could_improve,
+            'tomorrow_focus': tomorrow_focus
+        }
+        
+        # Preserve trade log sync data if it exists
+        if current_entry['trading'].get('trade_log_sync', False):
+            current_entry['trading']['trade_log_sync'] = True
+            current_entry['trading']['gross_pnl'] = current_entry['trading'].get('gross_pnl', 0)
+            current_entry['trading']['commissions'] = current_entry['trading'].get('commissions', 0)
+        
+        # Save to GitHub and local
         if st.session_state.get('github_connected', False):
             if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
                 st.success("✅ Trading review saved to GitHub!")
@@ -1142,8 +1351,47 @@ elif page == "🌙 Evening Recap":
                 st.success("Entry deleted!")
                 st.rerun()
     
+    st.subheader("Personal Reflection")
+    st.write("Reflect on your day as a person, father, and husband")
+    
+    personal_recap = st.text_area(
+        "How was your day outside of trading?",
+        value=current_entry['evening'].get('personal_recap', ""),
+        height=200,
+        help="Reflect on family time, personal goals, relationships, and overall well-being"
+    )
+    
+    family_highlights = st.text_area(
+        "Family Highlights",
+        value=current_entry['evening'].get('family_highlights', ""),
+        height=150,
+        help="Special moments with family, conversations with spouse/children"
+    )
+    
+    personal_wins = st.text_area(
+        "Personal Wins & Growth",
+        value=current_entry['evening'].get('personal_wins', ""),
+        height=150,
+        help="Non-trading accomplishments, personal development, habits"
+    )
+    
+    tomorrow_intentions = st.text_area(
+        "Intentions for Tomorrow",
+        value=current_entry['evening'].get('tomorrow_intentions', ""),
+        height=150,
+        help="How do you want to show up as a person, father, and husband tomorrow?"
+    )
+    
     # Save evening data
     if st.button("💾 Save Evening Recap", type="primary"):
+        current_entry['evening'] = {
+            'personal_recap': personal_recap,
+            'family_highlights': family_highlights,
+            'personal_wins': personal_wins,
+            'tomorrow_intentions': tomorrow_intentions
+        }
+        
+        # Save to GitHub and local
         if st.session_state.get('github_connected', False):
             if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
                 st.success("✅ Evening recap saved to GitHub!")
@@ -1157,7 +1405,157 @@ elif page == "🌙 Evening Recap":
 # ======== HISTORICAL ANALYSIS PAGE ========
 elif page == "📚 Historical Analysis":
     st.markdown('<div class="section-header">📚 Historical Analysis</div>', unsafe_allow_html=True)
-    st.info("Historical analysis functionality available but simplified for this version.")
+    
+    # Date range selector
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input(
+            "Start Date",
+            value=date.today() - timedelta(days=30),
+            max_value=date.today()
+        )
+    with col2:
+        end_date = st.date_input(
+            "End Date",
+            value=date.today(),
+            max_value=date.today()
+        )
+    
+    if st.button("📊 Analyze Period"):
+        # Filter data for date range
+        filtered_data = {}
+        current_date = start_date
+        while current_date <= end_date:
+            date_key = get_date_key(current_date)
+            if date_key in data:
+                filtered_data[date_key] = data[date_key]
+            current_date += timedelta(days=1)
+        
+        if filtered_data:
+            # Calculate statistics
+            total_pnl = 0
+            process_compliance_days = 0
+            total_trading_days = 0
+            profitable_days = 0
+            daily_pnls = []
+            
+            for date_key, entry in filtered_data.items():
+                if 'trading' in entry and 'pnl' in entry['trading']:
+                    pnl = entry['trading']['pnl']
+                    total_pnl += pnl
+                    daily_pnls.append(pnl)
+                    total_trading_days += 1
+                    
+                    if pnl > 0:
+                        profitable_days += 1
+                    
+                    # Check process compliance
+                    rule_compliance = entry.get('trading', {}).get('rule_compliance', {})
+                    if rule_compliance:
+                        compliance_rate = sum(rule_compliance.values()) / len(rule_compliance)
+                        if compliance_rate >= 0.8:
+                            process_compliance_days += 1
+            
+            # Display metrics
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Total P&L", f"${total_pnl:.2f}")
+            
+            with col2:
+                avg_pnl = total_pnl / total_trading_days if total_trading_days > 0 else 0
+                st.metric("Average Daily P&L", f"${avg_pnl:.2f}")
+            
+            with col3:
+                process_rate = (process_compliance_days / total_trading_days * 100) if total_trading_days > 0 else 0
+                st.metric("Process Success Rate", f"{process_rate:.1f}%")
+            
+            with col4:
+                win_rate = (profitable_days / total_trading_days * 100) if total_trading_days > 0 else 0
+                st.metric("Win Rate", f"{win_rate:.1f}%")
+            
+            # P&L Chart
+            if daily_pnls:
+                dates = list(filtered_data.keys())
+                pnls = [filtered_data[d].get('trading', {}).get('pnl', 0) for d in dates]
+                
+                fig = go.Figure()
+                colors = ['green' if p > 0 else 'red' if p < 0 else 'gray' for p in pnls]
+                
+                fig.add_trace(go.Bar(
+                    x=dates,
+                    y=pnls,
+                    marker_color=colors,
+                    name="Daily P&L"
+                ))
+                
+                fig.update_layout(
+                    title="Daily P&L Over Time",
+                    xaxis_title="Date",
+                    yaxis_title="P&L ($)",
+                    template="plotly_dark"
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Detailed entries
+            st.subheader("Detailed Entries")
+            
+            for date_key in sorted(filtered_data.keys(), reverse=True):
+                entry = filtered_data[date_key]
+                
+                with st.expander(f"📅 {date_key}"):
+                    # Trading Section
+                    if 'trading' in entry and entry['trading']:
+                        st.markdown("### 📈 Trading Review")
+                        trading = entry['trading']
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if 'pnl' in trading:
+                                pnl = trading['pnl']
+                                pnl_color = "green" if pnl > 0 else "red" if pnl < 0 else "gray"
+                                st.markdown(f"**P&L:** <span style='color: {pnl_color}'>${pnl:.2f}</span>", unsafe_allow_html=True)
+                            if 'process_grade' in trading:
+                                st.write(f"**Process Grade:** {trading['process_grade']}")
+                        
+                        with col2:
+                            if 'grade_reasoning' in trading and trading['grade_reasoning']:
+                                st.write(f"**Grade Reasoning:** {trading['grade_reasoning']}")
+                            if 'general_comments' in trading and trading['general_comments']:
+                                st.write(f"**General Comments:** {trading['general_comments']}")
+                        
+                        if 'what_could_improve' in trading and trading['what_could_improve']:
+                            st.write(f"**Could Improve:** {trading['what_could_improve']}")
+                        if 'tomorrow_focus' in trading and trading['tomorrow_focus']:
+                            st.write(f"**Tomorrow Focus:** {trading['tomorrow_focus']}")
+                    
+                    # Trade Log Summary (if available)
+                    if 'trade_log' in entry:
+                        trade_log = entry['trade_log']
+                        st.markdown("### 📊 Trade Log Summary")
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.write(f"**Total Trades:** {trade_log.get('trade_count', 'N/A')}")
+                            st.write(f"**Symbols:** {', '.join(trade_log.get('symbols', []))}")
+                            st.write(f"**Total Volume:** {trade_log.get('total_volume', 'N/A')} contracts")
+                            if 'win_rate' in trade_log:
+                                st.write(f"**Win Rate:** {trade_log['win_rate']:.1f}%")
+                            if 'winning_trades' in trade_log and 'losing_trades' in trade_log:
+                                st.write(f"**Win/Loss:** {trade_log['winning_trades']}/{trade_log['losing_trades']}")
+                        
+                        with col2:
+                            if 'gross_pnl' in trade_log:
+                                st.write(f"**Gross P&L:** ${trade_log['gross_pnl']:.2f}")
+                            if 'commissions' in trade_log:
+                                st.write(f"**Commissions:** ${trade_log['commissions']:.2f}")
+                            if 'avg_winner' in trade_log:
+                                st.write(f"**Average Winner:** ${trade_log['avg_winner']:.2f}")
+                            if 'avg_loser' in trade_log:
+                                st.write(f"**Average Loser:** ${trade_log['avg_loser']:.2f}")
+        else:
+            st.info("No trading data found for the selected date range.")
 
 # Sidebar stats
 st.sidebar.markdown("---")
