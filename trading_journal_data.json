@@ -17,6 +17,19 @@
       ]
     },
     "trading": {
+      "pnl": -900.0,
+      "process_grade": "F",
+      "grade_reasoning": "because i am a junky and a dumbass",
+      "general_comments": "fuck me i suck",
+      "screenshot_notes": "",
+      "rule_compliance": {
+        "rule_0": false,
+        "rule_1": false,
+        "rule_2": true,
+        "rule_3": false
+      },
+      "what_could_improve": "everything",
+      "tomorrow_focus": "everything",
       "trading_screenshots": [
         {
           "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-08/trading_Screenshot 2025-09-08 085541.png",
