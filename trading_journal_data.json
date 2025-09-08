@@ -6,6 +6,7 @@
     "rules": [
       "micros only",
       "stop when reached daily electrican wage",
+      "do not  move stops away from entry",
       "New rule - click to edit"
     ]
   }
