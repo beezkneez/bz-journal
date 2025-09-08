@@ -685,6 +685,16 @@ elif page == "📊 Trade Log Analysis":
         if analysis['positions']:
             st.subheader("💰 Running P&L")
             
+            # Define contract specifications
+            def get_point_value(symbol):
+                """Get point value for different futures contracts"""
+                if 'ENQU25' in symbol:  # E-mini NASDAQ
+                    return 20.0
+                elif 'mNQU25' in symbol or 'MNQU25' in symbol:  # Micro NASDAQ
+                    return 2.0
+                else:
+                    return 1.0  # Default fallback
+            
             # Calculate running P&L
             positions = analysis['positions']
             running_pnl = []
@@ -697,40 +707,63 @@ elif page == "📊 Trade Log Analysis":
                     continue
                     
                 symbol = pos['symbol']
+                point_value = get_point_value(symbol)
+                
                 if symbol not in open_positions:
                     open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
                 
                 pnl_change = 0
                 
                 if pos['open_close'] == 'Open':
-                    # Opening position - no immediate P&L but track for future closes
+                    # Opening position - track for future P&L calculation
                     if pos['action'] == 'Buy':
-                        open_positions[symbol]['total_cost'] += pos['quantity'] * pos['price']
-                        open_positions[symbol]['qty'] += pos['quantity']
+                        # Long position
+                        new_total_cost = open_positions[symbol]['total_cost'] + (pos['quantity'] * pos['price'])
+                        new_qty = open_positions[symbol]['qty'] + pos['quantity']
+                        open_positions[symbol]['total_cost'] = new_total_cost
+                        open_positions[symbol]['qty'] = new_qty
+                        if new_qty != 0:
+                            open_positions[symbol]['avg_price'] = new_total_cost / new_qty
                     else:  # Sell
-                        open_positions[symbol]['total_cost'] -= pos['quantity'] * pos['price']
-                        open_positions[symbol]['qty'] -= pos['quantity']
+                        # Short position
+                        new_total_cost = open_positions[symbol]['total_cost'] - (pos['quantity'] * pos['price'])
+                        new_qty = open_positions[symbol]['qty'] - pos['quantity']
+                        open_positions[symbol]['total_cost'] = new_total_cost
+                        open_positions[symbol]['qty'] = new_qty
+                        if new_qty != 0:
+                            open_positions[symbol]['avg_price'] = abs(new_total_cost / new_qty)
                 
                 elif pos['open_close'] == 'Close':
-                    # Closing position - calculate realized P&L
+                    # Closing position - calculate realized P&L with correct point value
                     if pos['action'] == 'Sell':
                         # Closing long position
                         if open_positions[symbol]['qty'] > 0:
-                            avg_price = open_positions[symbol]['total_cost'] / open_positions[symbol]['qty'] if open_positions[symbol]['qty'] != 0 else 0
-                            pnl_change = pos['quantity'] * (pos['price'] - avg_price)
-                            # Reduce position
-                            close_cost = pos['quantity'] * avg_price
-                            open_positions[symbol]['total_cost'] -= close_cost
-                            open_positions[symbol]['qty'] -= pos['quantity']
-                    else:  # Buy
+                            avg_price = open_positions[symbol]['avg_price']
+                            price_diff = pos['price'] - avg_price
+                            pnl_change = pos['quantity'] * price_diff * point_value
+                            
+                            # Reduce position proportionally
+                            remaining_qty = open_positions[symbol]['qty'] - pos['quantity']
+                            if remaining_qty > 0:
+                                open_positions[symbol]['qty'] = remaining_qty
+                                open_positions[symbol]['total_cost'] = remaining_qty * avg_price
+                            else:
+                                open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
+                                
+                    else:  # Buy to close
                         # Closing short position
                         if open_positions[symbol]['qty'] < 0:
-                            avg_price = abs(open_positions[symbol]['total_cost'] / open_positions[symbol]['qty']) if open_positions[symbol]['qty'] != 0 else 0
-                            pnl_change = pos['quantity'] * (avg_price - pos['price'])
-                            # Reduce position
-                            close_cost = pos['quantity'] * avg_price
-                            open_positions[symbol]['total_cost'] += close_cost
-                            open_positions[symbol]['qty'] += pos['quantity']
+                            avg_price = open_positions[symbol]['avg_price']
+                            price_diff = avg_price - pos['price']  # Profit when covering lower
+                            pnl_change = pos['quantity'] * price_diff * point_value
+                            
+                            # Reduce position proportionally
+                            remaining_qty = open_positions[symbol]['qty'] + pos['quantity']
+                            if remaining_qty < 0:
+                                open_positions[symbol]['qty'] = remaining_qty
+                                open_positions[symbol]['total_cost'] = remaining_qty * avg_price
+                            else:
+                                open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
                 
                 cumulative_pnl += pnl_change
                 running_pnl.append(cumulative_pnl)
@@ -766,10 +799,17 @@ elif page == "📊 Trade Log Analysis":
                 
                 st.plotly_chart(fig, use_container_width=True)
                 
-                # Display final P&L
+                # Display final P&L and contract info
                 final_pnl = running_pnl[-1] if running_pnl else 0
                 pnl_color = "green" if final_pnl >= 0 else "red"
                 st.markdown(f"**Final Session P&L:** <span style='color: {pnl_color}'>${final_pnl:.2f}</span>", unsafe_allow_html=True)
+                
+                # Show contract specifications used
+                unique_symbols = analysis['symbols']
+                st.markdown("**Contract Point Values Used:**")
+                for symbol in unique_symbols:
+                    point_val = get_point_value(symbol)
+                    st.write(f"• {symbol}: ${point_val:.2f} per point")
         
         # Detailed Trade List
         st.subheader("📋 Detailed Trade Log")
