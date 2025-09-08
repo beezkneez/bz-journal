@@ -48,20 +48,5 @@
       "do not  move stops away from entry",
       "no random entries"
     ]
-  },
-  "2025-09-05": {
-    "morning": {},
-    "trading": {
-      "pnl": 0.0,
-      "process_grade": "A",
-      "grade_reasoning": "",
-      "general_comments": "",
-      "screenshot_notes": "",
-      "rule_compliance": {},
-      "what_could_improve": "",
-      "tomorrow_focus": ""
-    },
-    "evening": {},
-    "rules": []
   }
 }
