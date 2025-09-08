@@ -491,6 +491,8 @@ if 'trade_data' not in st.session_state:
     st.session_state.trade_data = None
 if 'last_analysis_date' not in st.session_state:
     st.session_state.last_analysis_date = None
+if 'trade_log_action' not in st.session_state:
+    st.session_state.trade_log_action = None
 
 # Main header - UPDATED VERSION TO 7.3
 st.markdown('<h1 class="main-header">📊 Trading Journal v7.3</h1>', unsafe_allow_html=True)
@@ -541,12 +543,11 @@ if st.sidebar.button("📚 Historical Analysis", key="nav_history", use_containe
 
 page = st.session_state.page
 
-# Date selector
+# Date selector - FIXED: Removed max_value restriction to allow future dates
 st.sidebar.markdown("---")
 selected_date = st.sidebar.date_input(
     "📅 Select Date",
     value=st.session_state.current_date,
-    max_value=date.today(),
     key="date_selector"
 )
 
@@ -707,10 +708,6 @@ elif page == "📊 Trade Log Analysis":
     # Display selected date at the top
     st.markdown(f"### 📅 Analyzing trade log for: {selected_date.strftime('%A, %B %d, %Y')}")
     
-    # Add a session state variable to track user choice
-    if 'trade_log_action' not in st.session_state:
-        st.session_state.trade_log_action = None
-    
     # Check if there's existing trade log data for this date
     existing_trade_log = current_entry.get('trade_log', {})
     has_existing_data = bool(existing_trade_log.get('analysis'))
@@ -813,7 +810,7 @@ elif page == "📊 Trade Log Analysis":
         gross_pnl = analysis.get('daily_pnl', 0)
         net_pnl = gross_pnl - commission_input
         
-        # Key metrics in columns
+        # Key metrics in columns - UPDATED WITH WINNER/LOSER STATS
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -821,7 +818,7 @@ elif page == "📊 Trade Log Analysis":
             st.metric("Total Volume", f"{analysis.get('total_volume', 0):.0f} contracts")
         
         with col2:
-            st.metric("Win Rate", f"{analysis.get('win_rate', 0):.1f}%")
+            st.metric("Completed Trades", analysis.get('total_trades', 0))
             st.metric("Win/Loss Ratio", f"{analysis.get('winning_trades', 0)}/{analysis.get('losing_trades', 0)}")
         
         with col3:
@@ -831,7 +828,7 @@ elif page == "📊 Trade Log Analysis":
             st.metric("Average Loser", f"${avg_loser:.2f}" if avg_loser < 0 else "$0.00")
         
         with col4:
-            st.metric("Gross P&L", f"${gross_pnl:.2f}")
+            st.metric("Win Rate", f"{analysis.get('win_rate', 0):.1f}%")
             st.metric("Net P&L", f"${net_pnl:.2f}", help="P&L after commissions")
         
         # Symbols and Order Types
@@ -858,131 +855,10 @@ elif page == "📊 Trade Log Analysis":
         # Show saved analysis summary
         if has_existing_data and not trades:
             st.subheader("📊 Saved Analysis Summary")
-            st.write(f"**Trade Count:** {existing_trade_log.get('trade_count', 'N/A')}")
+            st.write(f"**Trade Fills:** {existing_trade_log.get('fill_count', existing_trade_log.get('trade_count', 'N/A'))}")
             st.write(f"**Total Volume:** {existing_trade_log.get('total_volume', 'N/A')} contracts")
+            st.write(f"**Completed Trades:** {existing_trade_log.get('completed_trades', existing_trade_log.get('total_trades', 'N/A'))}")
             st.write(f"**Win Rate:** {existing_trade_log.get('win_rate', 0):.1f}%")
-            st.write(f"**Total Trades:** {existing_trade_log.get('total_trades', 'N/A')}")
-        
-        # Hourly Activity Chart - only if data available
-        hourly_activity = analysis.get('hourly_activity', {})
-        if hourly_activity:
-            st.subheader("⏰ Trading Activity by Hour")
-            hours = list(hourly_activity.keys())
-            counts = list(hourly_activity.values())
-            
-            fig = go.Figure(data=[
-                go.Bar(x=hours, y=counts, marker_color='#64ffda')
-            ])
-            fig.update_layout(
-                title="Fills by Hour",
-                xaxis_title="Hour",
-                yaxis_title="Number of Fills",
-                template="plotly_dark"
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        elif has_existing_data:
-            st.subheader("⏰ Trading Activity by Hour")
-            st.info("Hourly activity chart not available for saved data. Upload original file to see charts.")
-        
-        # Running P&L Chart - only if we have position data
-        positions = analysis.get('positions', [])
-        if positions:
-            st.subheader("💰 Running P&L")
-            st.info("Running P&L chart available with detailed position data.")
-            
-            # Show basic P&L info instead of complex chart for saved data
-            if has_existing_data and not trades:
-                st.write(f"**Final P&L:** ${gross_pnl:.2f}")
-                if symbols:
-                    st.markdown("**Contract Point Values Used:**")
-                    for symbol in symbols:
-                        if 'ENQU25' in symbol:
-                            point_val = 20.0
-                        elif 'mNQU25' in symbol or 'MNQU25' in symbol:
-                            point_val = 2.0
-                        else:
-                            point_val = 1.0
-                        st.write(f"• {symbol}: ${point_val:.2f} per point")
-        elif has_existing_data:
-            st.subheader("💰 Running P&L")
-            st.info("Running P&L chart not available for saved data. Upload original file to see detailed P&L progression.")
-            st.write(f"**Final Session P&L:** ${gross_pnl:.2f}")
-        
-        # Detailed Trade List - only if we have raw trade data
-        if trades:
-            st.subheader("📋 Detailed Trade Log")
-            
-            # Add filters
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                symbol_filter = st.selectbox(
-                    "Filter by Symbol",
-                    options=['All'] + symbols,
-                    key="symbol_filter"
-                )
-            
-            with col2:
-                action_filter = st.selectbox(
-                    "Filter by Action",
-                    options=['All', 'Buy', 'Sell'],
-                    key="action_filter"
-                )
-            
-            with col3:
-                order_type_filter = st.selectbox(
-                    "Filter by Order Type",
-                    options=['All'] + order_types,
-                    key="order_type_filter"
-                )
-            
-            # Filter trades
-            filtered_trades = trades
-            
-            if symbol_filter != 'All':
-                filtered_trades = [t for t in filtered_trades if t.get('Symbol') == symbol_filter]
-            
-            if action_filter != 'All':
-                filtered_trades = [t for t in filtered_trades if t.get('BuySell') == action_filter]
-            
-            if order_type_filter != 'All':
-                filtered_trades = [t for t in filtered_trades if t.get('OrderType') == order_type_filter]
-            
-            st.write(f"Showing {len(filtered_trades)} of {len(trades)} trades")
-            
-            # Display trades in a nice format
-            for i, trade in enumerate(filtered_trades):
-                with st.expander(f"Trade {i+1}: {trade.get('BuySell', '')} {trade.get('Quantity', '')} {trade.get('Symbol', '')} @ ${trade.get('FillPrice', '')}"):
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.write(f"**Time:** {trade.get('DateTime', '')}")
-                        st.write(f"**Symbol:** {trade.get('Symbol', '')}")
-                        st.write(f"**Action:** {trade.get('BuySell', '')}")
-                        st.write(f"**Quantity:** {trade.get('Quantity', '')}")
-                        st.write(f"**Order Type:** {trade.get('OrderType', '')}")
-                    
-                    with col2:
-                        st.write(f"**Fill Price:** ${trade.get('FillPrice', '')}")
-                        st.write(f"**Position Qty:** {trade.get('PositionQuantity', '')}")
-                        st.write(f"**Open/Close:** {trade.get('OpenClose', '')}")
-                        st.write(f"**Order ID:** {trade.get('InternalOrderID', '')}")
-                        
-                        # Add tagging functionality
-                        tag_key = f"trade_tag_{i}"
-                        trade_tag = st.text_input(
-                            "Add Tag/Note:",
-                            value=trade.get('user_tag', ''),
-                            key=tag_key,
-                            placeholder="e.g., 'good entry', 'revenge trade', 'took profit too early'"
-                        )
-                        
-                        if trade_tag != trade.get('user_tag', ''):
-                            trade['user_tag'] = trade_tag
-                            st.session_state.trade_data = filtered_trades
-        
-        elif has_existing_data:
-            st.info("📋 Detailed trade log not available for previously saved data. Upload the original file again to see individual trades.")
         
         # Save/Export functionality
         st.markdown("---")
@@ -1088,7 +964,7 @@ DateTime, Symbol, BuySell, Quantity, FillPrice, OrderType, OpenClose, PositionQu
 2025-09-08 06:06:38, F.US.mNQU25, Sell, 1, 23746.75, Market, Close, 2
         """)
 
-# ======== MORNING PREP PAGE ========
+# ======== MORNING PREP PAGE - COMPLETELY FIXED ========
 elif page == "🌅 Morning Prep":
     st.markdown('<div class="section-header">🌅 Morning Preparation</div>', unsafe_allow_html=True)
     
@@ -1136,6 +1012,14 @@ elif page == "🌅 Morning Prep":
             value=current_entry['morning'].get('checked_news', False)
         )
         
+        # FIXED: Market News text box right below the checkbox
+        market_news = st.text_area(
+            "Market News & Events for Today",
+            value=current_entry['morning'].get('market_news', ""),
+            height=100,
+            placeholder="Add any relevant news, economic data, or market events..."
+        )
+        
         triggers_present = st.text_area(
             "Any triggers/reasons why you shouldn't trade today?",
             value=current_entry['morning'].get('triggers_present', ""),
@@ -1147,6 +1031,144 @@ elif page == "🌅 Morning Prep":
             value=current_entry['morning'].get('grateful_for', ""),
             height=100
         )
+        
+        # FIXED: Screenshot upload for morning prep WITH CAPTIONS
+        st.subheader("📸 Morning Screenshots")
+        
+        # Initialize current_entry['morning'] if it doesn't exist
+        if 'morning' not in current_entry:
+            current_entry['morning'] = {}
+        
+        # Ensure screenshots array exists
+        if 'morning_screenshots' not in current_entry['morning']:
+            current_entry['morning']['morning_screenshots'] = []
+        
+        # Use a unique key based on the number of existing screenshots to avoid conflicts
+        existing_morning_count = len(current_entry['morning'].get('morning_screenshots', []))
+        morning_upload_key = f"morning_screenshot_{date_key}_{existing_morning_count}"
+        
+        morning_screenshot = st.file_uploader(
+            "Upload market analysis, news, or prep screenshots",
+            type=['png', 'jpg', 'jpeg'],
+            key=morning_upload_key,
+            help="Select an image file to upload"
+        )
+        
+        # Handle immediate upload when file is selected
+        if morning_screenshot is not None:
+            # Use a unique caption key as well
+            morning_caption_key = f"morning_caption_{date_key}_{existing_morning_count}"
+            
+            # Caption input
+            morning_caption = st.text_input(
+                "Screenshot Caption",
+                placeholder="Describe this screenshot...",
+                key=morning_caption_key
+            )
+            
+            # Upload button with unique key
+            morning_upload_btn_key = f"upload_morning_btn_{date_key}_{existing_morning_count}"
+            
+            if st.button("📤 Upload Screenshot", key=morning_upload_btn_key):
+                if not morning_caption.strip():
+                    st.warning("⚠️ Please add a caption for your screenshot!")
+                else:
+                    # Get existing screenshots
+                    morning_screenshots = current_entry['morning'].get('morning_screenshots', [])
+                    
+                    success = False
+                    if st.session_state.get('github_connected', False):
+                        # Upload to GitHub
+                        try:
+                            file_data = morning_screenshot.getvalue()
+                            timestamp = int(datetime.now().timestamp())
+                            filename = f"morning_{timestamp}_{morning_screenshot.name}"
+                            screenshot_url = st.session_state.github_storage.upload_screenshot(
+                                file_data, filename, date_key
+                            )
+                            if screenshot_url:
+                                # Save as dict with URL and caption
+                                morning_screenshots.append({
+                                    'url': screenshot_url,
+                                    'caption': morning_caption
+                                })
+                                success = True
+                                st.success(f"✅ Screenshot '{morning_caption}' uploaded to GitHub!")
+                            else:
+                                st.error("❌ Failed to upload screenshot to GitHub")
+                        except Exception as e:
+                            st.error(f"❌ GitHub upload error: {str(e)}")
+                    else:
+                        # Save locally
+                        try:
+                            screenshot_path = save_uploaded_file_local(morning_screenshot, date_key, "morning")
+                            if screenshot_path:
+                                morning_screenshots.append({
+                                    'url': screenshot_path,
+                                    'caption': morning_caption
+                                })
+                                success = True
+                                st.success(f"✅ Screenshot '{morning_caption}' saved locally!")
+                            else:
+                                st.error("❌ Failed to save screenshot locally")
+                        except Exception as e:
+                            st.error(f"❌ Local save error: {str(e)}")
+                    
+                    if success:
+                        # Update the entry
+                        current_entry['morning']['morning_screenshots'] = morning_screenshots
+                        
+                        # Save immediately
+                        try:
+                            if st.session_state.get('github_connected', False):
+                                if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                                    st.success("📝 Entry updated successfully!")
+                                else:
+                                    st.error("❌ Failed to save entry to GitHub")
+                            else:
+                                save_local_data(data)
+                                st.success("📝 Entry updated successfully!")
+                        except Exception as e:
+                            st.error(f"❌ Save error: {str(e)}")
+                        
+                        # Force rerun to refresh the page and clear the upload
+                        st.rerun()
+        
+        # Display existing morning screenshots
+        existing_morning_screenshots = current_entry['morning'].get('morning_screenshots', [])
+        if existing_morning_screenshots:
+            st.markdown("**Uploaded Screenshots:**")
+            
+            for i, screenshot_data in enumerate(existing_morning_screenshots):
+                if screenshot_data:
+                    # Handle both old format (just URL) and new format (dict with URL and caption)
+                    if isinstance(screenshot_data, dict):
+                        screenshot_link = screenshot_data.get('url', '')
+                        screenshot_caption = screenshot_data.get('caption', f"Morning Screenshot {i+1}")
+                    else:
+                        screenshot_link = screenshot_data
+                        screenshot_caption = f"Morning Screenshot {i+1}"
+                    
+                    if screenshot_link:
+                        col_img, col_delete = st.columns([4, 1])
+                        with col_img:
+                            st.markdown(f"**{screenshot_caption}:**")
+                            display_image_full_size(screenshot_link, screenshot_caption)
+                        with col_delete:
+                            delete_morning_key = f"delete_morning_img_{date_key}_{i}"
+                            if st.button("🗑️", key=delete_morning_key, help="Delete this screenshot"):
+                                # Remove screenshot
+                                current_entry['morning']['morning_screenshots'].pop(i)
+                                
+                                # Save immediately
+                                try:
+                                    if st.session_state.get('github_connected', False):
+                                        st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+                                    save_local_data(data)
+                                    st.success("Screenshot deleted!")
+                                except Exception as e:
+                                    st.error(f"Error deleting screenshot: {str(e)}")
+                                st.rerun()
     
     with col2:
         st.subheader("Trading Goals & Rules")
@@ -1204,19 +1226,19 @@ elif page == "🌅 Morning Prep":
             save_local_data(data)
             st.rerun()
     
-    # Save morning data
+    # Save morning data - FIXED to include market_news and morning_screenshots
     if st.button("💾 Save Morning Prep", type="primary"):
         current_entry['morning'] = {
             'sleep_quality': sleep_quality,
             'emotional_state': emotional_state,
             'post_night_shift': post_night_shift,
             'checked_news': checked_news,
-            'market_news': market_news,
+            'market_news': market_news,  # FIXED: Include market news
             'triggers_present': triggers_present,
             'grateful_for': grateful_for,
             'daily_goal': daily_goal,
             'trading_process': trading_process,
-            'morning_screenshots': current_entry['morning'].get('morning_screenshots', [])  # Keep existing screenshots
+            'morning_screenshots': current_entry['morning'].get('morning_screenshots', [])  # FIXED: Keep existing screenshots
         }
         
         # Save to GitHub and local
@@ -1480,7 +1502,8 @@ elif page == "📈 Trading Review":
             'screenshot_notes': screenshot_notes,
             'rule_compliance': rule_compliance,
             'what_could_improve': what_could_improve,
-            'tomorrow_focus': tomorrow_focus
+            'tomorrow_focus': tomorrow_focus,
+            'trading_screenshots': current_entry['trading'].get('trading_screenshots', [])  # Keep existing screenshots
         }
         
         # Preserve trade log sync data if it exists
@@ -1672,6 +1695,43 @@ elif page == "📚 Historical Analysis":
                 entry = filtered_data[date_key]
                 
                 with st.expander(f"📅 {date_key}"):
+                    # Morning Section
+                    if 'morning' in entry and entry['morning']:
+                        st.markdown("### 🌅 Morning Preparation")
+                        morning = entry['morning']
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if 'sleep_quality' in morning:
+                                st.write(f"**Sleep Quality:** {morning['sleep_quality']}/10")
+                            if 'emotional_state' in morning:
+                                st.write(f"**Emotional State:** {morning['emotional_state']}")
+                            if 'market_news' in morning and morning['market_news']:
+                                st.write(f"**Market News:** {morning['market_news']}")
+                        
+                        with col2:
+                            if 'daily_goal' in morning and morning['daily_goal']:
+                                st.write(f"**Daily Goal:** {morning['daily_goal']}")
+                            if 'trading_process' in morning and morning['trading_process']:
+                                st.write(f"**Trading Process:** {morning['trading_process']}")
+                        
+                        # Morning Screenshots
+                        morning_screenshots = morning.get('morning_screenshots', [])
+                        if morning_screenshots:
+                            st.write("**Morning Screenshots:**")
+                            for j, screenshot_data in enumerate(morning_screenshots):
+                                if screenshot_data:
+                                    if isinstance(screenshot_data, dict):
+                                        screenshot_link = screenshot_data.get('url', '')
+                                        screenshot_caption = screenshot_data.get('caption', f"Morning Screenshot {j+1}")
+                                    else:
+                                        screenshot_link = screenshot_data
+                                        screenshot_caption = f"Morning Screenshot {j+1}"
+                                    
+                                    if screenshot_link and screenshot_link.strip():
+                                        st.write(f"*{screenshot_caption}:*")
+                                        display_image_full_size(screenshot_link, screenshot_caption)
+                    
                     # Trading Section
                     if 'trading' in entry and entry['trading']:
                         st.markdown("### 📈 Trading Review")
@@ -1692,10 +1752,22 @@ elif page == "📚 Historical Analysis":
                             if 'general_comments' in trading and trading['general_comments']:
                                 st.write(f"**General Comments:** {trading['general_comments']}")
                         
-                        if 'what_could_improve' in trading and trading['what_could_improve']:
-                            st.write(f"**Could Improve:** {trading['what_could_improve']}")
-                        if 'tomorrow_focus' in trading and trading['tomorrow_focus']:
-                            st.write(f"**Tomorrow Focus:** {trading['tomorrow_focus']}")
+                        # Trading Screenshots
+                        trading_screenshots = trading.get('trading_screenshots', [])
+                        if trading_screenshots:
+                            st.write("**Trading Screenshots:**")
+                            for j, screenshot_data in enumerate(trading_screenshots):
+                                if screenshot_data:
+                                    if isinstance(screenshot_data, dict):
+                                        screenshot_link = screenshot_data.get('url', '')
+                                        screenshot_caption = screenshot_data.get('caption', f"Trading Screenshot {j+1}")
+                                    else:
+                                        screenshot_link = screenshot_data
+                                        screenshot_caption = f"Trading Screenshot {j+1}"
+                                    
+                                    if screenshot_link:
+                                        st.write(f"*{screenshot_caption}:*")
+                                        display_image_full_size(screenshot_link, screenshot_caption)
                     
                     # Trade Log Summary (if available)
                     if 'trade_log' in entry:
@@ -1704,27 +1776,33 @@ elif page == "📚 Historical Analysis":
                         
                         col1, col2 = st.columns(2)
                         with col1:
-                            st.write(f"**Total Trades:** {trade_log.get('trade_count', 'N/A')}")
+                            st.write(f"**Trade Fills:** {trade_log.get('fill_count', trade_log.get('trade_count', 'N/A'))}")
                             st.write(f"**Symbols:** {', '.join(trade_log.get('symbols', []))}")
                             st.write(f"**Total Volume:** {trade_log.get('total_volume', 'N/A')} contracts")
                             if 'win_rate' in trade_log:
                                 st.write(f"**Win Rate:** {trade_log['win_rate']:.1f}%")
-                            if 'winning_trades' in trade_log and 'losing_trades' in trade_log:
-                                st.write(f"**Win/Loss:** {trade_log['winning_trades']}/{trade_log['losing_trades']}")
                         
                         with col2:
-                            if 'gross_pnl' in trade_log:
-                                st.write(f"**Gross P&L:** ${trade_log['gross_pnl']:.2f}")
-                            if 'commissions' in trade_log:
-                                st.write(f"**Commissions:** ${trade_log['commissions']:.2f}")
+                            if 'completed_trades' in trade_log:
+                                st.write(f"**Completed Trades:** {trade_log['completed_trades']}")
                             if 'avg_winner' in trade_log:
                                 st.write(f"**Average Winner:** ${trade_log['avg_winner']:.2f}")
                             if 'avg_loser' in trade_log:
                                 st.write(f"**Average Loser:** ${trade_log['avg_loser']:.2f}")
+                    
+                    # Evening Section
+                    if 'evening' in entry and entry['evening']:
+                        st.markdown("### 🌙 Evening Recap")
+                        evening = entry['evening']
+                        
+                        if 'personal_recap' in evening and evening['personal_recap']:
+                            st.write(f"**Personal Recap:** {evening['personal_recap']}")
+                        if 'family_highlights' in evening and evening['family_highlights']:
+                            st.write(f"**Family Highlights:** {evening['family_highlights']}")
         else:
             st.info("No trading data found for the selected date range.")
 
-# Sidebar stats
+# Sidebar stats - FIXED RULE COMPLIANCE CALCULATION + PROCESS GRADE TRACKING
 st.sidebar.markdown("---")
 st.sidebar.subheader("📊 Quick Stats")
 
@@ -1749,19 +1827,21 @@ def get_period_metrics(period_data):
     
     total_pnl = sum([entry.get('trading', {}).get('pnl', 0) for entry in period_data.values()])
     
-    # Calculate EXACT rule compliance percentage
+    # Calculate EXACT rule compliance percentage (total rules followed / total rules)
     total_rules_followed = 0
     total_rules_possible = 0
     
     for entry in period_data.values():
         rule_compliance = entry.get('trading', {}).get('rule_compliance', {})
         if rule_compliance:  # Only count days with trading data
+            # Count how many rules were followed vs total rules for this day
             rules_followed_today = sum(rule_compliance.values())
             total_rules_today = len(rule_compliance)
             
             total_rules_followed += rules_followed_today
             total_rules_possible += total_rules_today
     
+    # Calculate exact percentage of all rules followed
     overall_compliance = (total_rules_followed / total_rules_possible * 100) if total_rules_possible > 0 else 0
     return total_pnl, overall_compliance
 
@@ -1811,7 +1891,7 @@ with col1:
 with col2:
     st.metric("Rules", f"{compliance_30:.1f}%")
 
-# Process Grade Trend
+# FIXED: Process Grade Trend
 st.sidebar.markdown("**🎯 Process Grade**")
 if recent_grades:
     grade_color = {
