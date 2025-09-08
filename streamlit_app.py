@@ -711,6 +711,9 @@ elif page == "📊 Trade Log Analysis":
     existing_trade_log = current_entry.get('trade_log', {})
     has_existing_data = bool(existing_trade_log.get('analysis'))
     
+    # Initialize show_upload flag
+    show_upload = True
+    
     if has_existing_data:
         st.success(f"✅ Trade log data found for {selected_date.strftime('%B %d, %Y')}!")
         
@@ -720,21 +723,23 @@ elif page == "📊 Trade Log Analysis":
             if st.button("👁️ View Existing Trade Log", key="view_existing"):
                 # Load existing data into session state for display
                 st.session_state.trade_analysis = existing_trade_log.get('analysis', {})
+                show_upload = False
                 st.rerun()
         with col2:
             if st.button("🔄 Replace with New Upload", key="replace_upload"):
                 # Clear existing data to allow new upload
                 st.session_state.trade_analysis = None
                 st.session_state.trade_data = None
-                st.info("Upload a new file below to replace existing data.")
+                show_upload = True
                 st.rerun()
         
-        # Auto-load existing data if not already loaded
+        # Auto-load existing data if not already loaded AND user hasn't chosen to replace
         if not st.session_state.trade_analysis and existing_trade_log.get('analysis'):
             st.session_state.trade_analysis = existing_trade_log.get('analysis', {})
+            show_upload = False
     
-    # File upload section - only show if no existing data or user wants to replace
-    if not has_existing_data or st.session_state.trade_analysis is None:
+    # File upload section - show based on conditions
+    if show_upload or not has_existing_data or st.session_state.trade_analysis is None:
         st.subheader("📄 Upload Trade Log")
         
         uploaded_file = st.file_uploader(
