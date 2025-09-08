@@ -16,7 +16,14 @@
         }
       ]
     },
-    "trading": {},
+    "trading": {
+      "trading_screenshots": [
+        {
+          "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-08/trading_Screenshot 2025-09-08 085541.png",
+          "caption": "Lucid trades"
+        }
+      ]
+    },
     "evening": {},
     "rules": [
       "micros only",
