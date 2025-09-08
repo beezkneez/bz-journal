@@ -271,8 +271,18 @@ if 'github_connected' not in st.session_state:
 if 'github_storage' not in st.session_state:
     st.session_state.github_storage = GitHubStorage()
 
-# Main header - CLEAR VERSION INDICATOR
-st.markdown('<h1 class="main-header">📊 Trading Journal v6.0 - CALENDAR FIRST!</h1>', unsafe_allow_html=True)
+# Initialize session state for pending uploads
+if 'pending_morning_screenshot' not in st.session_state:
+    st.session_state.pending_morning_screenshot = None
+if 'pending_morning_caption' not in st.session_state:
+    st.session_state.pending_morning_caption = ""
+if 'pending_trading_screenshot' not in st.session_state:
+    st.session_state.pending_trading_screenshot = None
+if 'pending_trading_caption' not in st.session_state:
+    st.session_state.pending_trading_caption = ""
+
+# Main header - UPDATED VERSION
+st.markdown('<h1 class="main-header">📊 Trading Journal v7.0</h1>', unsafe_allow_html=True)
 
 # GitHub connection check and auto-setup
 if hasattr(st, 'secrets') and 'github' in st.secrets:
@@ -530,22 +540,84 @@ elif page == "🌅 Morning Prep":
             height=100
         )
         
-        # Screenshot upload for morning prep WITH CAPTIONS
+        # FIXED Screenshot upload for morning prep WITH CAPTIONS
         st.subheader("📸 Morning Screenshots")
+        
         morning_screenshot = st.file_uploader(
             "Upload market analysis, news, or prep screenshots",
             type=['png', 'jpg', 'jpeg'],
             key="morning_screenshot"
         )
         
-        # Caption for morning screenshot
-        morning_caption = ""
-        if morning_screenshot:
+        # Handle immediate upload when file is selected
+        if morning_screenshot is not None:
+            # Store in session state
+            st.session_state.pending_morning_screenshot = morning_screenshot
+            
+            # Caption input
             morning_caption = st.text_input(
                 "Screenshot Caption",
                 placeholder="Describe this screenshot...",
-                key="morning_caption"
+                key="morning_caption",
+                value=st.session_state.pending_morning_caption
             )
+            
+            # Update session state caption
+            st.session_state.pending_morning_caption = morning_caption
+            
+            # Upload button
+            if st.button("📤 Upload Screenshot", key="upload_morning_btn"):
+                if not morning_caption.strip():
+                    st.warning("⚠️ Please add a caption for your screenshot!")
+                else:
+                    # Get existing screenshots
+                    morning_screenshots = current_entry['morning'].get('morning_screenshots', [])
+                    
+                    if st.session_state.get('github_connected', False):
+                        # Upload to GitHub
+                        file_data = st.session_state.pending_morning_screenshot.getvalue()
+                        screenshot_url = st.session_state.github_storage.upload_screenshot(
+                            file_data, f"morning_{st.session_state.pending_morning_screenshot.name}", date_key
+                        )
+                        if screenshot_url:
+                            # Save as dict with URL and caption
+                            morning_screenshots.append({
+                                'url': screenshot_url,
+                                'caption': morning_caption
+                            })
+                            
+                            # Update the entry
+                            current_entry['morning']['morning_screenshots'] = morning_screenshots
+                            
+                            # Save immediately
+                            if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                                st.success(f"✅ Screenshot '{morning_caption}' uploaded to GitHub!")
+                            else:
+                                st.error("❌ Failed to save to GitHub")
+                        else:
+                            st.error("❌ Failed to upload screenshot to GitHub")
+                    else:
+                        # Save locally
+                        screenshot_path = save_uploaded_file_local(st.session_state.pending_morning_screenshot, date_key, "morning")
+                        if screenshot_path:
+                            morning_screenshots.append({
+                                'url': screenshot_path,
+                                'caption': morning_caption
+                            })
+                            
+                            # Update the entry
+                            current_entry['morning']['morning_screenshots'] = morning_screenshots
+                            
+                            # Save immediately
+                            save_local_data(data)
+                            st.success(f"✅ Screenshot '{morning_caption}' saved locally!")
+                        else:
+                            st.error("❌ Failed to save screenshot locally")
+                    
+                    # Clear pending screenshot
+                    st.session_state.pending_morning_screenshot = None
+                    st.session_state.pending_morning_caption = ""
+                    st.rerun()
         
         # Display existing morning screenshots
         if 'morning_screenshots' in current_entry['morning']:
@@ -560,8 +632,20 @@ elif page == "🌅 Morning Prep":
                         screenshot_caption = f"Morning Screenshot {i+1}"
                     
                     if screenshot_link:
-                        st.markdown(f"**{screenshot_caption}:**")
-                        display_image_full_size(screenshot_link, screenshot_caption)
+                        col_img, col_delete = st.columns([4, 1])
+                        with col_img:
+                            st.markdown(f"**{screenshot_caption}:**")
+                            display_image_full_size(screenshot_link, screenshot_caption)
+                        with col_delete:
+                            if st.button("🗑️", key=f"delete_morning_img_{i}", help="Delete this screenshot"):
+                                # Remove screenshot
+                                current_entry['morning']['morning_screenshots'].pop(i)
+                                
+                                # Save immediately
+                                if st.session_state.get('github_connected', False):
+                                    st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+                                save_local_data(data)
+                                st.rerun()
     
     with col2:
         st.subheader("Trading Goals & Rules")
@@ -619,36 +703,8 @@ elif page == "🌅 Morning Prep":
             save_local_data(data)
             st.rerun()
     
-    # Save morning data
+    # UPDATED Save morning data - removed screenshot logic
     if st.button("💾 Save Morning Prep", type="primary"):
-        # Handle screenshot upload WITH CAPTION
-        morning_screenshots = current_entry['morning'].get('morning_screenshots', [])
-        if morning_screenshot:
-            if not morning_caption.strip():
-                st.warning("⚠️ Please add a caption for your screenshot!")
-            else:
-                if st.session_state.get('github_connected', False):
-                    # Upload to GitHub
-                    file_data = morning_screenshot.getvalue()
-                    screenshot_url = st.session_state.github_storage.upload_screenshot(
-                        file_data, f"morning_{morning_screenshot.name}", date_key
-                    )
-                    if screenshot_url:
-                        # Save as dict with URL and caption
-                        morning_screenshots.append({
-                            'url': screenshot_url,
-                            'caption': morning_caption
-                        })
-                        st.success(f"✅ Screenshot '{morning_caption}' uploaded!")
-                else:
-                    # Save locally
-                    screenshot_path = save_uploaded_file_local(morning_screenshot, date_key, "morning")
-                    if screenshot_path:
-                        morning_screenshots.append({
-                            'url': screenshot_path,
-                            'caption': morning_caption
-                        })
-        
         current_entry['morning'] = {
             'sleep_quality': sleep_quality,
             'emotional_state': emotional_state,
@@ -658,7 +714,7 @@ elif page == "🌅 Morning Prep":
             'grateful_for': grateful_for,
             'daily_goal': daily_goal,
             'trading_process': trading_process,
-            'morning_screenshots': morning_screenshots
+            'morning_screenshots': current_entry['morning'].get('morning_screenshots', [])  # Keep existing screenshots
         }
         
         # Save to GitHub and local
@@ -728,22 +784,84 @@ elif page == "📈 Trading Review":
             help="Describe your entries, exits, and any screenshots you took"
         )
         
-        # Screenshot upload for trading WITH CAPTIONS
+        # FIXED Screenshot upload for trading WITH CAPTIONS
         st.subheader("📸 Trading Screenshots")
+        
         trading_screenshot = st.file_uploader(
             "Upload entry/exit screenshots, charts, or P&L",
             type=['png', 'jpg', 'jpeg'],
             key="trading_screenshot"
         )
         
-        # Caption for trading screenshot
-        trading_caption = ""
-        if trading_screenshot:
+        # Handle immediate upload when file is selected
+        if trading_screenshot is not None:
+            # Store in session state
+            st.session_state.pending_trading_screenshot = trading_screenshot
+            
+            # Caption input
             trading_caption = st.text_input(
                 "Screenshot Caption",
                 placeholder="Describe this screenshot...",
-                key="trading_caption"
+                key="trading_caption",
+                value=st.session_state.pending_trading_caption
             )
+            
+            # Update session state caption
+            st.session_state.pending_trading_caption = trading_caption
+            
+            # Upload button
+            if st.button("📤 Upload Screenshot", key="upload_trading_btn"):
+                if not trading_caption.strip():
+                    st.warning("⚠️ Please add a caption for your screenshot!")
+                else:
+                    # Get existing screenshots
+                    trading_screenshots = current_entry['trading'].get('trading_screenshots', [])
+                    
+                    if st.session_state.get('github_connected', False):
+                        # Upload to GitHub
+                        file_data = st.session_state.pending_trading_screenshot.getvalue()
+                        screenshot_url = st.session_state.github_storage.upload_screenshot(
+                            file_data, f"trading_{st.session_state.pending_trading_screenshot.name}", date_key
+                        )
+                        if screenshot_url:
+                            # Save as dict with URL and caption
+                            trading_screenshots.append({
+                                'url': screenshot_url,
+                                'caption': trading_caption
+                            })
+                            
+                            # Update the entry
+                            current_entry['trading']['trading_screenshots'] = trading_screenshots
+                            
+                            # Save immediately
+                            if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                                st.success(f"✅ Screenshot '{trading_caption}' uploaded to GitHub!")
+                            else:
+                                st.error("❌ Failed to save to GitHub")
+                        else:
+                            st.error("❌ Failed to upload screenshot to GitHub")
+                    else:
+                        # Save locally
+                        screenshot_path = save_uploaded_file_local(st.session_state.pending_trading_screenshot, date_key, "trading")
+                        if screenshot_path:
+                            trading_screenshots.append({
+                                'url': screenshot_path,
+                                'caption': trading_caption
+                            })
+                            
+                            # Update the entry
+                            current_entry['trading']['trading_screenshots'] = trading_screenshots
+                            
+                            # Save immediately
+                            save_local_data(data)
+                            st.success(f"✅ Screenshot '{trading_caption}' saved locally!")
+                        else:
+                            st.error("❌ Failed to save screenshot locally")
+                    
+                    # Clear pending screenshot
+                    st.session_state.pending_trading_screenshot = None
+                    st.session_state.pending_trading_caption = ""
+                    st.rerun()
         
         # Display existing trading screenshots
         if 'trading_screenshots' in current_entry['trading']:
@@ -758,8 +876,20 @@ elif page == "📈 Trading Review":
                         screenshot_caption = f"Trading Screenshot {i+1}"
                     
                     if screenshot_link:
-                        st.markdown(f"**{screenshot_caption}:**")
-                        display_image_full_size(screenshot_link, screenshot_caption)
+                        col_img, col_delete = st.columns([4, 1])
+                        with col_img:
+                            st.markdown(f"**{screenshot_caption}:**")
+                            display_image_full_size(screenshot_link, screenshot_caption)
+                        with col_delete:
+                            if st.button("🗑️", key=f"delete_trading_img_{i}", help="Delete this screenshot"):
+                                # Remove screenshot
+                                current_entry['trading']['trading_screenshots'].pop(i)
+                                
+                                # Save immediately
+                                if st.session_state.get('github_connected', False):
+                                    st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+                                save_local_data(data)
+                                st.rerun()
     
     with col2:
         st.subheader("Rule Compliance")
@@ -797,36 +927,8 @@ elif page == "📈 Trading Review":
         compliance_rate = sum(rule_compliance.values()) / len(rule_compliance) * 100
         st.metric("Rule Compliance Rate", f"{compliance_rate:.1f}%")
     
-    # Save trading data
+    # UPDATED Save trading data - removed screenshot logic
     if st.button("💾 Save Trading Review", type="primary"):
-        # Handle screenshot upload WITH CAPTION
-        trading_screenshots = current_entry['trading'].get('trading_screenshots', [])
-        if trading_screenshot:
-            if not trading_caption.strip():
-                st.warning("⚠️ Please add a caption for your screenshot!")
-            else:
-                if st.session_state.get('github_connected', False):
-                    # Upload to GitHub
-                    file_data = trading_screenshot.getvalue()
-                    screenshot_url = st.session_state.github_storage.upload_screenshot(
-                        file_data, f"trading_{trading_screenshot.name}", date_key
-                    )
-                    if screenshot_url:
-                        # Save as dict with URL and caption
-                        trading_screenshots.append({
-                            'url': screenshot_url,
-                            'caption': trading_caption
-                        })
-                        st.success(f"✅ Screenshot '{trading_caption}' uploaded!")
-                else:
-                    # Save locally
-                    screenshot_path = save_uploaded_file_local(trading_screenshot, date_key, "trading")
-                    if screenshot_path:
-                        trading_screenshots.append({
-                            'url': screenshot_path,
-                            'caption': trading_caption
-                        })
-        
         current_entry['trading'] = {
             'pnl': pnl,
             'process_grade': process_grade,
@@ -836,7 +938,7 @@ elif page == "📈 Trading Review":
             'rule_compliance': rule_compliance,
             'what_could_improve': what_could_improve,
             'tomorrow_focus': tomorrow_focus,
-            'trading_screenshots': trading_screenshots
+            'trading_screenshots': current_entry['trading'].get('trading_screenshots', [])  # Keep existing screenshots
         }
         
         # Save to GitHub and local
