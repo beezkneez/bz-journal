@@ -1211,10 +1211,12 @@ elif page == "🌅 Morning Prep":
             'emotional_state': emotional_state,
             'post_night_shift': post_night_shift,
             'checked_news': checked_news,
+            'market_news': market_news,
             'triggers_present': triggers_present,
             'grateful_for': grateful_for,
             'daily_goal': daily_goal,
-            'trading_process': trading_process
+            'trading_process': trading_process,
+            'morning_screenshots': current_entry['morning'].get('morning_screenshots', [])  # Keep existing screenshots
         }
         
         # Save to GitHub and local
