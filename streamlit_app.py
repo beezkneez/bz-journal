@@ -630,26 +630,129 @@ elif page == "📊 Trade Log Analysis":
         st.markdown("---")
         st.subheader("📈 Trading Statistics")
         
-        # Key metrics in columns
+        # Calculate P&L statistics from the running P&L data
+        pnl_stats = {'final_pnl': 0, 'high_pnl': 0, 'low_pnl': 0, 'winning_trades': 0, 'losing_trades': 0, 'total_trades': 0}
+        
+        if analysis['positions']:
+            # Get running P&L data (reuse the calculation from chart)
+            positions = analysis['positions']
+            running_pnl = []
+            cumulative_pnl = 0
+            open_positions = {}
+            trade_pnls = []  # Track individual trade P&Ls
+            
+            def get_point_value(symbol):
+                if 'ENQU25' in symbol:
+                    return 20.0
+                elif 'mNQU25' in symbol or 'MNQU25' in symbol:
+                    return 2.0
+                else:
+                    return 1.0
+            
+            for pos in positions:
+                if not pos['time'] or pos['price'] <= 0:
+                    continue
+                    
+                symbol = pos['symbol']
+                point_value = get_point_value(symbol)
+                
+                if symbol not in open_positions:
+                    open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
+                
+                pnl_change = 0
+                
+                if pos['open_close'] == 'Open':
+                    if pos['action'] == 'Buy':
+                        new_total_cost = open_positions[symbol]['total_cost'] + (pos['quantity'] * pos['price'])
+                        new_qty = open_positions[symbol]['qty'] + pos['quantity']
+                        open_positions[symbol]['total_cost'] = new_total_cost
+                        open_positions[symbol]['qty'] = new_qty
+                        if new_qty != 0:
+                            open_positions[symbol]['avg_price'] = new_total_cost / new_qty
+                    else:
+                        new_total_cost = open_positions[symbol]['total_cost'] - (pos['quantity'] * pos['price'])
+                        new_qty = open_positions[symbol]['qty'] - pos['quantity']
+                        open_positions[symbol]['total_cost'] = new_total_cost
+                        open_positions[symbol]['qty'] = new_qty
+                        if new_qty != 0:
+                            open_positions[symbol]['avg_price'] = abs(new_total_cost / new_qty)
+                
+                elif pos['open_close'] == 'Close':
+                    if pos['action'] == 'Sell':
+                        if open_positions[symbol]['qty'] > 0:
+                            avg_price = open_positions[symbol]['avg_price']
+                            price_diff = pos['price'] - avg_price
+                            pnl_change = pos['quantity'] * price_diff * point_value
+                            
+                            remaining_qty = open_positions[symbol]['qty'] - pos['quantity']
+                            if remaining_qty > 0:
+                                open_positions[symbol]['qty'] = remaining_qty
+                                open_positions[symbol]['total_cost'] = remaining_qty * avg_price
+                            else:
+                                open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
+                    else:
+                        if open_positions[symbol]['qty'] < 0:
+                            avg_price = open_positions[symbol]['avg_price']
+                            price_diff = avg_price - pos['price']
+                            pnl_change = pos['quantity'] * price_diff * point_value
+                            
+                            remaining_qty = open_positions[symbol]['qty'] + pos['quantity']
+                            if remaining_qty < 0:
+                                open_positions[symbol]['qty'] = remaining_qty
+                                open_positions[symbol]['total_cost'] = remaining_qty * avg_price
+                            else:
+                                open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
+                
+                if pnl_change != 0:
+                    trade_pnls.append(pnl_change)
+                    if pnl_change > 0:
+                        pnl_stats['winning_trades'] += 1
+                    else:
+                        pnl_stats['losing_trades'] += 1
+                
+                cumulative_pnl += pnl_change
+                running_pnl.append(cumulative_pnl)
+            
+            if running_pnl:
+                pnl_stats['final_pnl'] = running_pnl[-1]
+                pnl_stats['high_pnl'] = max(running_pnl)
+                pnl_stats['low_pnl'] = min(running_pnl)
+            
+            pnl_stats['total_trades'] = len(trade_pnls)
+        
+        # Commission input
+        commission_input = st.number_input(
+            "Total Commissions for Session ($)",
+            min_value=0.0,
+            value=0.0,
+            step=0.01,
+            format="%.2f",
+            help="Enter total commission costs for this trading session"
+        )
+        
+        # Calculate net P&L
+        gross_pnl = pnl_stats['final_pnl']
+        net_pnl = gross_pnl - commission_input
+        
+        # Key metrics in columns - UPDATED WITH NEW STATS
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             st.metric("Total Fills", analysis['total_fills'])
-            st.metric("Buy Orders", f"{analysis['buy_orders']} ({analysis['buy_orders']/analysis['total_fills']*100:.1f}%)")
-        
-        with col2:
-            st.metric("Sell Orders", f"{analysis['sell_orders']} ({analysis['sell_orders']/analysis['total_fills']*100:.1f}%)")
             st.metric("Total Volume", f"{analysis['total_volume']:.0f} contracts")
         
+        with col2:
+            win_rate = (pnl_stats['winning_trades'] / pnl_stats['total_trades'] * 100) if pnl_stats['total_trades'] > 0 else 0
+            st.metric("Win Rate", f"{win_rate:.1f}%")
+            st.metric("Win/Loss Ratio", f"{pnl_stats['winning_trades']}/{pnl_stats['losing_trades']}")
+        
         with col3:
-            if analysis.get('high_price'):
-                st.metric("High Price", f"${analysis['high_price']:.2f}")
-                st.metric("Low Price", f"${analysis['low_price']:.2f}")
+            st.metric("P&L High", f"${pnl_stats['high_pnl']:.2f}")
+            st.metric("P&L Low", f"${pnl_stats['low_pnl']:.2f}")
         
         with col4:
-            if analysis.get('avg_price'):
-                st.metric("Average Price", f"${analysis['avg_price']:.2f}")
-                st.metric("Price Range", f"${analysis.get('price_range', 0):.2f}")
+            st.metric("Gross P&L", f"${gross_pnl:.2f}")
+            st.metric("Net P&L", f"${net_pnl:.2f}", help="P&L after commissions")
         
         # Symbols and Order Types
         col1, col2 = st.columns(2)
@@ -681,7 +784,7 @@ elif page == "📊 Trade Log Analysis":
             )
             st.plotly_chart(fig, use_container_width=True)
         
-        # Running P&L Chart
+        # Running P&L Chart with correct point values
         if analysis['positions']:
             st.subheader("💰 Running P&L")
             
@@ -883,9 +986,9 @@ elif page == "📊 Trade Log Analysis":
                         trade['user_tag'] = trade_tag
                         st.session_state.trade_data = filtered_trades
         
-        # Save/Export functionality
+        # Save/Export functionality with updated P&L sync
         st.markdown("---")
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         
         with col1:
             if st.button("💾 Save Analysis to Journal"):
@@ -894,7 +997,13 @@ elif page == "📊 Trade Log Analysis":
                     'analysis': analysis,
                     'trade_count': len(trades),
                     'symbols': analysis['symbols'],
-                    'total_volume': analysis['total_volume']
+                    'total_volume': analysis['total_volume'],
+                    'gross_pnl': gross_pnl,
+                    'commissions': commission_input,
+                    'net_pnl': net_pnl,
+                    'win_rate': win_rate,
+                    'pnl_high': pnl_stats['high_pnl'],
+                    'pnl_low': pnl_stats['low_pnl']
                 }
                 
                 if st.session_state.get('github_connected', False):
@@ -908,6 +1017,27 @@ elif page == "📊 Trade Log Analysis":
                     st.success("💾 Trade analysis saved locally!")
         
         with col2:
+            if st.button("🔄 Update Trading Review P&L"):
+                # Update the trading review P&L with net P&L from trade log
+                if 'trading' not in current_entry:
+                    current_entry['trading'] = {}
+                
+                current_entry['trading']['pnl'] = net_pnl
+                current_entry['trading']['trade_log_sync'] = True
+                current_entry['trading']['gross_pnl'] = gross_pnl
+                current_entry['trading']['commissions'] = commission_input
+                
+                if st.session_state.get('github_connected', False):
+                    if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                        st.success(f"✅ Trading Review P&L updated to ${net_pnl:.2f}!")
+                    else:
+                        save_local_data(data)
+                        st.success(f"💾 Trading Review P&L updated to ${net_pnl:.2f}!")
+                else:
+                    save_local_data(data)
+                    st.success(f"💾 Trading Review P&L updated to ${net_pnl:.2f}!")
+        
+        with col3:
             # Export filtered data as CSV
             if filtered_trades:
                 df = pd.DataFrame(filtered_trades)
@@ -1464,6 +1594,12 @@ elif page == "📈 Trading Review":
             'trading_screenshots': current_entry['trading'].get('trading_screenshots', [])  # Keep existing screenshots
         }
         
+        # Preserve trade log sync data if it exists
+        if current_entry['trading'].get('trade_log_sync', False):
+            current_entry['trading']['trade_log_sync'] = True
+            current_entry['trading']['gross_pnl'] = current_entry['trading'].get('gross_pnl', 0)
+            current_entry['trading']['commissions'] = current_entry['trading'].get('commissions', 0)
+        
         # Save to GitHub and local
         if st.session_state.get('github_connected', False):
             if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
@@ -1749,6 +1885,12 @@ elif page == "📚 Historical Analysis":
                         st.write(f"**Total Trades:** {trade_log.get('trade_count', 'N/A')}")
                         st.write(f"**Symbols:** {', '.join(trade_log.get('symbols', []))}")
                         st.write(f"**Total Volume:** {trade_log.get('total_volume', 'N/A')} contracts")
+                        if 'win_rate' in trade_log:
+                            st.write(f"**Win Rate:** {trade_log['win_rate']:.1f}%")
+                        if 'gross_pnl' in trade_log:
+                            st.write(f"**Gross P&L:** ${trade_log['gross_pnl']:.2f}")
+                        if 'commissions' in trade_log:
+                            st.write(f"**Commissions:** ${trade_log['commissions']:.2f}")
                     
                     # Evening Section
                     if 'evening' in entry and entry['evening']:
