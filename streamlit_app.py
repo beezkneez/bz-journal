@@ -728,40 +728,49 @@ elif page == "📊 Trade Log Analysis":
     
     # Display analysis if available
     if st.session_state.trade_analysis:
+    # Display analysis if available (either from existing data or new upload)
+    if st.session_state.trade_analysis:
         analysis = st.session_state.trade_analysis
-        trades = st.session_state.trade_data
+        
+        # If we loaded existing data but don't have trade_data, we can still show analysis
+        # The detailed trade list won't be available but statistics will be
+        trades = st.session_state.trade_data if st.session_state.trade_data else []
         
         st.markdown("---")
         st.subheader("📈 Trading Statistics")
         
-        # Commission input
+        # Get saved commission from existing data or allow input
+        saved_commissions = existing_trade_log.get('commissions', 0.0) if has_existing_data else 0.0
+        
         commission_input = st.number_input(
             "Total Commissions for Session ($)",
             min_value=0.0,
-            value=0.0,
+            value=saved_commissions,
             step=0.01,
             format="%.2f",
             help="Enter total commission costs for this trading session"
         )
         
         # Calculate net P&L
-        gross_pnl = analysis['daily_pnl']
+        gross_pnl = analysis.get('daily_pnl', 0)
         net_pnl = gross_pnl - commission_input
         
         # Key metrics in columns - UPDATED WITH WINNER/LOSER STATS
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            st.metric("Total Fills", analysis['total_fills'])
-            st.metric("Total Volume", f"{analysis['total_volume']:.0f} contracts")
+            st.metric("Total Fills", analysis.get('total_fills', 0))
+            st.metric("Total Volume", f"{analysis.get('total_volume', 0):.0f} contracts")
         
         with col2:
-            st.metric("Win Rate", f"{analysis['win_rate']:.1f}%")
-            st.metric("Win/Loss Ratio", f"{analysis['winning_trades']}/{analysis['losing_trades']}")
+            st.metric("Win Rate", f"{analysis.get('win_rate', 0):.1f}%")
+            st.metric("Win/Loss Ratio", f"{analysis.get('winning_trades', 0)}/{analysis.get('losing_trades', 0)}")
         
         with col3:
-            st.metric("Average Winner", f"${analysis['avg_winner']:.2f}" if analysis['avg_winner'] > 0 else "$0.00")
-            st.metric("Average Loser", f"${analysis['avg_loser']:.2f}" if analysis['avg_loser'] < 0 else "$0.00")
+            avg_winner = analysis.get('avg_winner', 0)
+            avg_loser = analysis.get('avg_loser', 0)
+            st.metric("Average Winner", f"${avg_winner:.2f}" if avg_winner > 0 else "$0.00")
+            st.metric("Average Loser", f"${avg_loser:.2f}" if avg_loser < 0 else "$0.00")
         
         with col4:
             st.metric("Gross P&L", f"${gross_pnl:.2f}")
@@ -772,19 +781,22 @@ elif page == "📊 Trade Log Analysis":
         
         with col1:
             st.subheader("🎯 Symbols Traded")
-            for symbol in analysis['symbols']:
+            symbols = analysis.get('symbols', [])
+            for symbol in symbols:
                 st.write(f"• {symbol}")
         
         with col2:
             st.subheader("📋 Order Types")
-            for order_type in analysis['order_types']:
+            order_types = analysis.get('order_types', [])
+            for order_type in order_types:
                 st.write(f"• {order_type}")
         
         # Hourly Activity Chart
-        if analysis['hourly_activity']:
+        hourly_activity = analysis.get('hourly_activity', {})
+        if hourly_activity:
             st.subheader("⏰ Trading Activity by Hour")
-            hours = list(analysis['hourly_activity'].keys())
-            counts = list(analysis['hourly_activity'].values())
+            hours = list(hourly_activity.keys())
+            counts = list(hourly_activity.values())
             
             fig = go.Figure(data=[
                 go.Bar(x=hours, y=counts, marker_color='#64ffda')
@@ -797,8 +809,9 @@ elif page == "📊 Trade Log Analysis":
             )
             st.plotly_chart(fig, use_container_width=True)
         
-        # Running P&L Chart with correct point values
-        if analysis['positions']:
+        # Running P&L Chart - only if we have position data
+        positions = analysis.get('positions', [])
+        if positions:
             st.subheader("💰 Running P&L")
             
             # Define contract specifications
@@ -812,54 +825,57 @@ elif page == "📊 Trade Log Analysis":
                     return 1.0  # Default fallback
             
             # Calculate running P&L
-            positions = analysis['positions']
             running_pnl = []
             cumulative_pnl = 0
             times = []
             open_positions = {}  # Track open positions by symbol
             
             for pos in positions:
-                if not pos['time'] or pos['price'] <= 0:
+                if not pos.get('time') or pos.get('price', 0) <= 0:
                     continue
                     
-                symbol = pos['symbol']
+                symbol = pos.get('symbol', '')
                 point_value = get_point_value(symbol)
                 
                 if symbol not in open_positions:
                     open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
                 
                 pnl_change = 0
+                action = pos.get('action', '')
+                open_close = pos.get('open_close', '')
+                quantity = pos.get('quantity', 0)
+                price = pos.get('price', 0)
                 
-                if pos['open_close'] == 'Open':
+                if open_close == 'Open':
                     # Opening position - track for future P&L calculation
-                    if pos['action'] == 'Buy':
+                    if action == 'Buy':
                         # Long position
-                        new_total_cost = open_positions[symbol]['total_cost'] + (pos['quantity'] * pos['price'])
-                        new_qty = open_positions[symbol]['qty'] + pos['quantity']
+                        new_total_cost = open_positions[symbol]['total_cost'] + (quantity * price)
+                        new_qty = open_positions[symbol]['qty'] + quantity
                         open_positions[symbol]['total_cost'] = new_total_cost
                         open_positions[symbol]['qty'] = new_qty
                         if new_qty != 0:
                             open_positions[symbol]['avg_price'] = new_total_cost / new_qty
                     else:  # Sell
                         # Short position
-                        new_total_cost = open_positions[symbol]['total_cost'] - (pos['quantity'] * pos['price'])
-                        new_qty = open_positions[symbol]['qty'] - pos['quantity']
+                        new_total_cost = open_positions[symbol]['total_cost'] - (quantity * price)
+                        new_qty = open_positions[symbol]['qty'] - quantity
                         open_positions[symbol]['total_cost'] = new_total_cost
                         open_positions[symbol]['qty'] = new_qty
                         if new_qty != 0:
                             open_positions[symbol]['avg_price'] = abs(new_total_cost / new_qty)
                 
-                elif pos['open_close'] == 'Close':
+                elif open_close == 'Close':
                     # Closing position - calculate realized P&L with correct point value
-                    if pos['action'] == 'Sell':
+                    if action == 'Sell':
                         # Closing long position
                         if open_positions[symbol]['qty'] > 0:
                             avg_price = open_positions[symbol]['avg_price']
-                            price_diff = pos['price'] - avg_price
-                            pnl_change = pos['quantity'] * price_diff * point_value
+                            price_diff = price - avg_price
+                            pnl_change = quantity * price_diff * point_value
                             
                             # Reduce position proportionally
-                            remaining_qty = open_positions[symbol]['qty'] - pos['quantity']
+                            remaining_qty = open_positions[symbol]['qty'] - quantity
                             if remaining_qty > 0:
                                 open_positions[symbol]['qty'] = remaining_qty
                                 open_positions[symbol]['total_cost'] = remaining_qty * avg_price
@@ -870,11 +886,11 @@ elif page == "📊 Trade Log Analysis":
                         # Closing short position
                         if open_positions[symbol]['qty'] < 0:
                             avg_price = open_positions[symbol]['avg_price']
-                            price_diff = avg_price - pos['price']  # Profit when covering lower
-                            pnl_change = pos['quantity'] * price_diff * point_value
+                            price_diff = avg_price - price  # Profit when covering lower
+                            pnl_change = quantity * price_diff * point_value
                             
                             # Reduce position proportionally
-                            remaining_qty = open_positions[symbol]['qty'] + pos['quantity']
+                            remaining_qty = open_positions[symbol]['qty'] + quantity
                             if remaining_qty < 0:
                                 open_positions[symbol]['qty'] = remaining_qty
                                 open_positions[symbol]['total_cost'] = remaining_qty * avg_price
@@ -883,7 +899,7 @@ elif page == "📊 Trade Log Analysis":
                 
                 cumulative_pnl += pnl_change
                 running_pnl.append(cumulative_pnl)
-                times.append(pos['time'])
+                times.append(pos.get('time', ''))
             
             if times and running_pnl:
                 fig = go.Figure()
@@ -921,83 +937,88 @@ elif page == "📊 Trade Log Analysis":
                 st.markdown(f"**Final Session P&L:** <span style='color: {pnl_color}'>${final_pnl:.2f}</span>", unsafe_allow_html=True)
                 
                 # Show contract specifications used
-                unique_symbols = analysis['symbols']
-                st.markdown("**Contract Point Values Used:**")
-                for symbol in unique_symbols:
-                    point_val = get_point_value(symbol)
-                    st.write(f"• {symbol}: ${point_val:.2f} per point")
+                unique_symbols = symbols
+                if unique_symbols:
+                    st.markdown("**Contract Point Values Used:**")
+                    for symbol in unique_symbols:
+                        point_val = get_point_value(symbol)
+                        st.write(f"• {symbol}: ${point_val:.2f} per point")
         
-        # Detailed Trade List
-        st.subheader("📋 Detailed Trade Log")
-        
-        # Add filters
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            symbol_filter = st.selectbox(
-                "Filter by Symbol",
-                options=['All'] + analysis['symbols'],
-                key="symbol_filter"
-            )
-        
-        with col2:
-            action_filter = st.selectbox(
-                "Filter by Action",
-                options=['All', 'Buy', 'Sell'],
-                key="action_filter"
-            )
-        
-        with col3:
-            order_type_filter = st.selectbox(
-                "Filter by Order Type",
-                options=['All'] + analysis['order_types'],
-                key="order_type_filter"
-            )
-        
-        # Filter trades
-        filtered_trades = trades
-        
-        if symbol_filter != 'All':
-            filtered_trades = [t for t in filtered_trades if t.get('Symbol') == symbol_filter]
-        
-        if action_filter != 'All':
-            filtered_trades = [t for t in filtered_trades if t.get('BuySell') == action_filter]
-        
-        if order_type_filter != 'All':
-            filtered_trades = [t for t in filtered_trades if t.get('OrderType') == order_type_filter]
-        
-        st.write(f"Showing {len(filtered_trades)} of {len(trades)} trades")
-        
-        # Display trades in a nice format
-        for i, trade in enumerate(filtered_trades):
-            with st.expander(f"Trade {i+1}: {trade.get('BuySell', '')} {trade.get('Quantity', '')} {trade.get('Symbol', '')} @ ${trade.get('FillPrice', '')}"):
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.write(f"**Time:** {trade.get('DateTime', '')}")
-                    st.write(f"**Symbol:** {trade.get('Symbol', '')}")
-                    st.write(f"**Action:** {trade.get('BuySell', '')}")
-                    st.write(f"**Quantity:** {trade.get('Quantity', '')}")
-                    st.write(f"**Order Type:** {trade.get('OrderType', '')}")
-                
-                with col2:
-                    st.write(f"**Fill Price:** ${trade.get('FillPrice', '')}")
-                    st.write(f"**Position Qty:** {trade.get('PositionQuantity', '')}")
-                    st.write(f"**Open/Close:** {trade.get('OpenClose', '')}")
-                    st.write(f"**Order ID:** {trade.get('InternalOrderID', '')}")
+        # Detailed Trade List - only if we have raw trade data
+        if trades:
+            st.subheader("📋 Detailed Trade Log")
+            
+            # Add filters
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                symbol_filter = st.selectbox(
+                    "Filter by Symbol",
+                    options=['All'] + symbols,
+                    key="symbol_filter"
+                )
+            
+            with col2:
+                action_filter = st.selectbox(
+                    "Filter by Action",
+                    options=['All', 'Buy', 'Sell'],
+                    key="action_filter"
+                )
+            
+            with col3:
+                order_type_filter = st.selectbox(
+                    "Filter by Order Type",
+                    options=['All'] + order_types,
+                    key="order_type_filter"
+                )
+            
+            # Filter trades
+            filtered_trades = trades
+            
+            if symbol_filter != 'All':
+                filtered_trades = [t for t in filtered_trades if t.get('Symbol') == symbol_filter]
+            
+            if action_filter != 'All':
+                filtered_trades = [t for t in filtered_trades if t.get('BuySell') == action_filter]
+            
+            if order_type_filter != 'All':
+                filtered_trades = [t for t in filtered_trades if t.get('OrderType') == order_type_filter]
+            
+            st.write(f"Showing {len(filtered_trades)} of {len(trades)} trades")
+            
+            # Display trades in a nice format
+            for i, trade in enumerate(filtered_trades):
+                with st.expander(f"Trade {i+1}: {trade.get('BuySell', '')} {trade.get('Quantity', '')} {trade.get('Symbol', '')} @ ${trade.get('FillPrice', '')}"):
+                    col1, col2 = st.columns(2)
                     
-                    # Add tagging functionality
-                    tag_key = f"trade_tag_{i}"
-                    trade_tag = st.text_input(
-                        "Add Tag/Note:",
-                        value=trade.get('user_tag', ''),
-                        key=tag_key,
-                        placeholder="e.g., 'good entry', 'revenge trade', 'took profit too early'"
-                    )
+                    with col1:
+                        st.write(f"**Time:** {trade.get('DateTime', '')}")
+                        st.write(f"**Symbol:** {trade.get('Symbol', '')}")
+                        st.write(f"**Action:** {trade.get('BuySell', '')}")
+                        st.write(f"**Quantity:** {trade.get('Quantity', '')}")
+                        st.write(f"**Order Type:** {trade.get('OrderType', '')}")
                     
-                    if trade_tag != trade.get('user_tag', ''):
-                        trade['user_tag'] = trade_tag
-                        st.session_state.trade_data = filtered_trades
+                    with col2:
+                        st.write(f"**Fill Price:** ${trade.get('FillPrice', '')}")
+                        st.write(f"**Position Qty:** {trade.get('PositionQuantity', '')}")
+                        st.write(f"**Open/Close:** {trade.get('OpenClose', '')}")
+                        st.write(f"**Order ID:** {trade.get('InternalOrderID', '')}")
+                        
+                        # Add tagging functionality
+                        tag_key = f"trade_tag_{i}"
+                        trade_tag = st.text_input(
+                            "Add Tag/Note:",
+                            value=trade.get('user_tag', ''),
+                            key=tag_key,
+                            placeholder="e.g., 'good entry', 'revenge trade', 'took profit too early'"
+                        )
+                        
+                        if trade_tag != trade.get('user_tag', ''):
+                            trade['user_tag'] = trade_tag
+                            st.session_state.trade_data = filtered_trades
+        
+        elif has_existing_data:
+            st.info("📋 Detailed trade log not available for previously saved data. Upload the original file again to see individual trades.")
         
         # Save/Export functionality with updated P&L sync
         st.markdown("---")
@@ -1008,18 +1029,18 @@ elif page == "📊 Trade Log Analysis":
                 # Save trade analysis to selected date
                 current_entry['trade_log'] = {
                     'analysis': analysis,
-                    'trade_count': len(trades),
-                    'symbols': analysis['symbols'],
-                    'total_volume': analysis['total_volume'],
+                    'trade_count': len(trades) if trades else analysis.get('total_fills', 0),
+                    'symbols': symbols,
+                    'total_volume': analysis.get('total_volume', 0),
                     'gross_pnl': gross_pnl,
                     'commissions': commission_input,
                     'net_pnl': net_pnl,
-                    'win_rate': analysis['win_rate'],
-                    'winning_trades': analysis['winning_trades'],
-                    'losing_trades': analysis['losing_trades'],
-                    'avg_winner': analysis['avg_winner'],
-                    'avg_loser': analysis['avg_loser'],
-                    'total_trades': analysis['total_trades']
+                    'win_rate': analysis.get('win_rate', 0),
+                    'winning_trades': analysis.get('winning_trades', 0),
+                    'losing_trades': analysis.get('losing_trades', 0),
+                    'avg_winner': analysis.get('avg_winner', 0),
+                    'avg_loser': analysis.get('avg_loser', 0),
+                    'total_trades': analysis.get('total_trades', 0)
                 }
                 
                 if st.session_state.get('github_connected', False):
@@ -1054,19 +1075,21 @@ elif page == "📊 Trade Log Analysis":
                     st.success(f"💾 Trading Review P&L updated to ${net_pnl:.2f} for {selected_date.strftime('%B %d, %Y')}!")
         
         with col3:
-            # Export filtered data as CSV
-            if filtered_trades:
-                df = pd.DataFrame(filtered_trades)
+            # Export filtered data as CSV - only if we have trade data
+            if trades:
+                df = pd.DataFrame(trades)
                 csv = df.to_csv(index=False)
                 st.download_button(
-                    label="📤 Export Filtered Trades as CSV",
+                    label="📤 Export Trades as CSV",
                     data=csv,
-                    file_name=f"filtered_trades_{selected_date.strftime('%Y%m%d')}.csv",
+                    file_name=f"trades_{selected_date.strftime('%Y%m%d')}.csv",
                     mime="text/csv"
                 )
+            else:
+                st.write("📤 Export not available")
     
     else:
-        st.info(f"Upload a trade log file for {selected_date.strftime('%B %d, %Y')} to see detailed analysis and statistics.")
+        st.info(f"No trade log data available for {selected_date.strftime('%B %d, %Y')}. Upload a trade log file to see detailed analysis and statistics.")
         
         # Show sample format
         st.subheader("📋 Supported File Formats")
