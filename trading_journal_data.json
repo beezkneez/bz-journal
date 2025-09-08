@@ -1,6 +1,14 @@
 {
   "2025-09-08": {
     "morning": {
+      "sleep_quality": 5,
+      "emotional_state": "Tired",
+      "post_night_shift": true,
+      "checked_news": true,
+      "triggers_present": "3 night shifts in a row - new setup with the laptop on main screen",
+      "grateful_for": "My family and my career",
+      "daily_goal": "Follow my rules",
+      "trading_process": "Use pateince and act as a sniper",
       "morning_screenshots": [
         {
           "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-08/morning_Screenshot 2025-09-08 085336.png",
