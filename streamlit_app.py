@@ -299,7 +299,7 @@ def display_image_full_size(image_source, caption="Screenshot"):
                 st.error(f"Could not load image: {image_source}")
 
 # Main header
-st.markdown('<h1 class="main-header">📊 Trading Journal</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">📊 Trading Journal v3.0 - CLEAN VERSION</h1>', unsafe_allow_html=True)
 
 # Debug info at the top
 st.sidebar.markdown("### 🔍 Debug Info (v2.0)")
