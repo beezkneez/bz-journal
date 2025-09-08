@@ -41,22 +41,6 @@ st.markdown("""
         margin: 1rem 0;
     }
     
-    .setup-box {
-        background: rgba(0, 20, 40, 0.6);
-        border: 2px solid #64ffda;
-        border-radius: 10px;
-        padding: 1.5rem;
-        margin: 1rem 0;
-    }
-    
-    .success-box {
-        background: rgba(0, 255, 0, 0.1);
-        border: 2px solid #00ff00;
-        border-radius: 10px;
-        padding: 1rem;
-        margin: 1rem 0;
-    }
-    
     .metric-card {
         background: rgba(0, 20, 40, 0.6);
         border: 1px solid #64ffda;
@@ -68,20 +52,12 @@ st.markdown("""
     .calendar-day {
         border: 2px solid #333;
         padding: 10px;
-        height: 100px;
+        height: 80px;
         margin: 2px;
         border-radius: 5px;
         background: rgba(0,20,40,0.3);
         text-align: center;
         cursor: pointer;
-    }
-    
-    .screenshot-container {
-        border: 1px solid #64ffda;
-        border-radius: 10px;
-        padding: 10px;
-        margin: 10px 0;
-        background: rgba(0,20,40,0.3);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -145,7 +121,6 @@ class GitHubStorage:
             else:
                 return None, None
         except Exception as e:
-            st.error(f"Error getting file: {e}")
             return None, None
     
     def save_file_content(self, file_path, content, sha=None):
@@ -178,7 +153,6 @@ class GitHubStorage:
             
             return response.status_code in [200, 201]
         except Exception as e:
-            st.error(f"Error saving file: {e}")
             return False
     
     def upload_screenshot(self, image_data, filename, date_key):
@@ -215,7 +189,6 @@ class GitHubStorage:
             else:
                 return None
         except Exception as e:
-            st.error(f"Error uploading screenshot: {e}")
             return None
     
     def load_all_journal_data(self):
@@ -237,16 +210,6 @@ class GitHubStorage:
         
         # Save the entire data structure
         return self.save_file_content("trading_journal_data.json", all_data, sha)
-
-# Initialize session state
-if 'current_date' not in st.session_state:
-    st.session_state.current_date = date.today()
-if 'page' not in st.session_state:
-    st.session_state.page = "🌅 Morning Prep"
-if 'github_connected' not in st.session_state:
-    st.session_state.github_connected = False
-if 'github_storage' not in st.session_state:
-    st.session_state.github_storage = GitHubStorage()
 
 # Local fallback functions
 def load_local_data():
@@ -298,107 +261,39 @@ def display_image_full_size(image_source, caption="Screenshot"):
             except:
                 st.error(f"Could not load image: {image_source}")
 
+# Initialize session state
+if 'current_date' not in st.session_state:
+    st.session_state.current_date = date.today()
+if 'page' not in st.session_state:
+    st.session_state.page = "🌅 Morning Prep"
+if 'github_connected' not in st.session_state:
+    st.session_state.github_connected = False
+if 'github_storage' not in st.session_state:
+    st.session_state.github_storage = GitHubStorage()
+
 # Main header
-st.markdown('<h1 class="main-header">📊 Trading Journal v3.0 - CLEAN VERSION</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">📊 Trading Journal</h1>', unsafe_allow_html=True)
 
-# Debug info at the top
-st.sidebar.markdown("### 🔍 Debug Info (v2.0)")
-st.sidebar.write(f"GitHub connected: {st.session_state.github_connected}")
+# GitHub connection check and auto-setup
+if hasattr(st, 'secrets') and 'github' in st.secrets:
+    # Auto-connect using secrets
+    if not st.session_state.get('github_connected', False):
+        if st.session_state.github_storage.connect(st.secrets.github.token, st.secrets.github.owner, st.secrets.github.repo):
+            st.session_state.github_connected = True
+            st.session_state.github_token = st.secrets.github.token
+            st.session_state.repo_owner = st.secrets.github.owner
+            st.session_state.repo_name = st.secrets.github.repo
 
-# Test secrets access
-try:
-    if hasattr(st, 'secrets') and 'github' in st.secrets:
-        st.sidebar.write("✅ Secrets found!")
-        st.sidebar.write(f"Token starts with: {st.secrets.github.token[:10]}...")
-        st.sidebar.write(f"Owner: {st.secrets.github.owner}")
-        st.sidebar.write(f"Repo: {st.secrets.github.repo}")
-        
-        # Manual connection test
-        if st.sidebar.button("🔗 Test Connection"):
-            test_storage = GitHubStorage()
-            with st.sidebar:
-                with st.spinner("Testing connection..."):
-                    if test_storage.connect(st.secrets.github.token, st.secrets.github.owner, st.secrets.github.repo):
-                        st.success("✅ Connection successful!")
-                        st.session_state.github_connected = True
-                        st.session_state.github_token = st.secrets.github.token
-                        st.session_state.repo_owner = st.secrets.github.owner
-                        st.session_state.repo_name = st.secrets.github.repo
-                        st.session_state.github_storage = test_storage
-                        st.rerun()
-                    else:
-                        st.error("❌ Connection failed!")
-                        st.write("Check if repo exists and is public:")
-                        st.write(f"https://github.com/{st.secrets.github.owner}/{st.secrets.github.repo}")
-        
-    else:
-        st.sidebar.write("❌ No secrets found")
-except Exception as e:
-    st.sidebar.write(f"❌ Secrets error: {e}")
-
-st.sidebar.markdown("---")
-
-# GitHub Setup in sidebar
-st.sidebar.title("🔗 GitHub Integration")
-
-if not st.session_state.github_connected:
-    st.sidebar.markdown("""
-    <div class="setup-box">
-    <h3>💾 Free GitHub Database Setup</h3>
-    <p>Connect to your GitHub repo for free cloud storage!</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # GitHub connection form
-    with st.sidebar.form("github_setup"):
-        st.markdown("**Step 1: Create GitHub Repo**")
-        st.markdown("1. Go to [GitHub.com](https://github.com)")
-        st.markdown("2. Create a new **public** repository")
-        st.markdown("3. Name it: `trading-journal`")
-        
-        st.markdown("**Step 2: Get Personal Access Token**")
-        st.markdown("1. Go to GitHub Settings → Developer settings")
-        st.markdown("2. Personal access tokens → Tokens (classic)")
-        st.markdown("3. Generate new token with `repo` permissions")
-        
-        st.markdown("**Step 3: Connect**")
-        github_token = st.text_input("GitHub Token", type="password", help="Your personal access token")
-        repo_owner = st.text_input("GitHub Username", help="Your GitHub username")
-        repo_name = st.text_input("Repository Name", value="trading-journal", help="Name of your repo")
-        
-        if st.form_submit_button("🔗 Connect to GitHub", type="primary"):
-            if github_token and repo_owner and repo_name:
-                with st.spinner("Connecting to GitHub..."):
-                    if st.session_state.github_storage.connect(github_token, repo_owner, repo_name):
-                        st.session_state.github_connected = True
-                        # Store credentials in session state
-                        st.session_state.github_token = github_token
-                        st.session_state.repo_owner = repo_owner
-                        st.session_state.repo_name = repo_name
-                        st.success("✅ Connected to GitHub!")
-                        st.rerun()
-                    else:
-                        st.error("❌ Connection failed. Check your token and repo details.")
-            else:
-                st.error("Please fill in all fields")
-
-else:
-    # Show connection status
-    st.sidebar.markdown("""
-    <div class="success-box">
-    <h3>✅ GitHub Connected</h3>
-    </div>
-    """, unsafe_allow_html=True)
-    
+# Sidebar GitHub status
+st.sidebar.title("☁️ Cloud Storage")
+if st.session_state.get('github_connected', False):
+    st.sidebar.success("✅ Connected to GitHub")
     repo_url = f"https://github.com/{st.session_state.repo_owner}/{st.session_state.repo_name}"
     st.sidebar.markdown(f"📁 [View Repository]({repo_url})")
-    
     screenshots_url = f"{repo_url}/tree/main/screenshots"
     st.sidebar.markdown(f"📸 [View Screenshots]({screenshots_url})")
-    
-    if st.sidebar.button("🔌 Disconnect"):
-        st.session_state.github_connected = False
-        st.rerun()
+else:
+    st.sidebar.warning("⚠️ GitHub not connected")
 
 # Sidebar navigation with buttons
 st.sidebar.markdown("---")
@@ -438,20 +333,13 @@ if selected_date != st.session_state.current_date:
 date_key = get_date_key(selected_date)
 
 # Load data (GitHub first, then local fallback)
-if st.session_state.github_connected:
+if st.session_state.get('github_connected', False):
     try:
-        # Reconnect using stored credentials
-        st.session_state.github_storage.connect(
-            st.session_state.github_token,
-            st.session_state.repo_owner,
-            st.session_state.repo_name
-        )
         data = st.session_state.github_storage.load_all_journal_data()
         if not data:  # If GitHub is empty, try to load local data
             data = load_local_data()
     except:
         data = load_local_data()
-        st.sidebar.warning("⚠️ Using local data (GitHub connection issue)")
 else:
     data = load_local_data()
 
@@ -469,6 +357,20 @@ current_entry = data[date_key]
 # ======== MORNING PREP PAGE ========
 if page == "🌅 Morning Prep":
     st.markdown('<div class="section-header">🌅 Morning Preparation</div>', unsafe_allow_html=True)
+    
+    # Show current date and delete option
+    col1, col2, col3 = st.columns([3, 1, 1])
+    with col1:
+        st.markdown(f"### 📅 {selected_date.strftime('%A, %B %d, %Y')}")
+    with col2:
+        if st.button("🗑️ Delete Entry", key="delete_morning", help="Delete all data for this date"):
+            if date_key in data:
+                del data[date_key]
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry(date_key, {}, data)
+                save_local_data(data)
+                st.success("Entry deleted!")
+                st.rerun()
     
     col1, col2 = st.columns(2)
     
@@ -571,7 +473,7 @@ if page == "🌅 Morning Prep":
         for i in reversed(rules_to_delete):
             current_entry['rules'].pop(i)
             # Save immediately
-            if st.session_state.github_connected:
+            if st.session_state.get('github_connected', False):
                 st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
             save_local_data(data)
             st.rerun()
@@ -579,7 +481,7 @@ if page == "🌅 Morning Prep":
         if st.button("➕ Add Rule"):
             current_entry['rules'].append("New rule - click to edit")
             # Save immediately
-            if st.session_state.github_connected:
+            if st.session_state.get('github_connected', False):
                 st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
             save_local_data(data)
             st.rerun()
@@ -589,7 +491,7 @@ if page == "🌅 Morning Prep":
         # Handle screenshot upload
         morning_screenshots = current_entry['morning'].get('morning_screenshots', [])
         if morning_screenshot:
-            if st.session_state.github_connected:
+            if st.session_state.get('github_connected', False):
                 # Upload to GitHub
                 file_data = morning_screenshot.getvalue()
                 screenshot_url = st.session_state.github_storage.upload_screenshot(
@@ -617,12 +519,12 @@ if page == "🌅 Morning Prep":
         }
         
         # Save to GitHub and local
-        if st.session_state.github_connected:
+        if st.session_state.get('github_connected', False):
             if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
                 st.success("✅ Morning prep saved to GitHub!")
             else:
-                st.warning("⚠️ Saved locally (GitHub error)")
                 save_local_data(data)
+                st.success("💾 Morning prep saved locally!")
         else:
             save_local_data(data)
             st.success("💾 Morning prep saved locally!")
@@ -630,6 +532,20 @@ if page == "🌅 Morning Prep":
 # ======== TRADING REVIEW PAGE ========
 elif page == "📈 Trading Review":
     st.markdown('<div class="section-header">📈 Post-Trading Review</div>', unsafe_allow_html=True)
+    
+    # Show current date and delete option
+    col1, col2, col3 = st.columns([3, 1, 1])
+    with col1:
+        st.markdown(f"### 📅 {selected_date.strftime('%A, %B %d, %Y')}")
+    with col2:
+        if st.button("🗑️ Delete Entry", key="delete_trading", help="Delete all data for this date"):
+            if date_key in data:
+                del data[date_key]
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry(date_key, {}, data)
+                save_local_data(data)
+                st.success("Entry deleted!")
+                st.rerun()
     
     col1, col2 = st.columns(2)
     
@@ -726,7 +642,7 @@ elif page == "📈 Trading Review":
         # Handle screenshot upload
         trading_screenshots = current_entry['trading'].get('trading_screenshots', [])
         if trading_screenshot:
-            if st.session_state.github_connected:
+            if st.session_state.get('github_connected', False):
                 # Upload to GitHub
                 file_data = trading_screenshot.getvalue()
                 screenshot_url = st.session_state.github_storage.upload_screenshot(
@@ -754,12 +670,12 @@ elif page == "📈 Trading Review":
         }
         
         # Save to GitHub and local
-        if st.session_state.github_connected:
+        if st.session_state.get('github_connected', False):
             if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
                 st.success("✅ Trading review saved to GitHub!")
             else:
-                st.warning("⚠️ Saved locally (GitHub error)")
                 save_local_data(data)
+                st.success("💾 Trading review saved locally!")
         else:
             save_local_data(data)
             st.success("💾 Trading review saved locally!")
@@ -767,6 +683,20 @@ elif page == "📈 Trading Review":
 # ======== EVENING RECAP PAGE ========
 elif page == "🌙 Evening Recap":
     st.markdown('<div class="section-header">🌙 Evening Life Recap</div>', unsafe_allow_html=True)
+    
+    # Show current date and delete option
+    col1, col2, col3 = st.columns([3, 1, 1])
+    with col1:
+        st.markdown(f"### 📅 {selected_date.strftime('%A, %B %d, %Y')}")
+    with col2:
+        if st.button("🗑️ Delete Entry", key="delete_evening", help="Delete all data for this date"):
+            if date_key in data:
+                del data[date_key]
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry(date_key, {}, data)
+                save_local_data(data)
+                st.success("Entry deleted!")
+                st.rerun()
     
     st.subheader("Personal Reflection")
     st.write("Reflect on your day as a person, father, and husband")
@@ -809,12 +739,12 @@ elif page == "🌙 Evening Recap":
         }
         
         # Save to GitHub and local
-        if st.session_state.github_connected:
+        if st.session_state.get('github_connected', False):
             if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
                 st.success("✅ Evening recap saved to GitHub!")
             else:
-                st.warning("⚠️ Saved locally (GitHub error)")
                 save_local_data(data)
+                st.success("💾 Evening recap saved locally!")
         else:
             save_local_data(data)
             st.success("💾 Evening recap saved locally!")
@@ -848,14 +778,14 @@ elif page == "📊 Calendar View":
     for i, day in enumerate(days):
         header_cols[i].markdown(f"**{day}**")
     
-    # Calendar body with weekly totals
+    # Calendar body with weekly totals - ALL SAME HEIGHT
     for week in cal:
         week_cols = st.columns(8)
         week_pnl = 0
         
         for i, day in enumerate(week):
             if day == 0:
-                # Empty day
+                # Empty day - same height as others
                 week_cols[i].markdown(
                     '<div style="border: 2px solid #333; padding: 10px; height: 80px; background: rgba(0,0,0,0.2); border-radius: 5px;">&nbsp;</div>', 
                     unsafe_allow_html=True
@@ -875,39 +805,43 @@ elif page == "📊 Calendar View":
                     if rule_compliance:
                         compliance_rate = sum(rule_compliance.values()) / len(rule_compliance)
                         compliance_color = "🟢" if compliance_rate >= 0.8 else "🔴"
-                        border_color = "#00ff00" if compliance_rate >= 0.8 else "#ff0000"
                     else:
                         compliance_color = "⚪"
-                        border_color = "#666"
                     
-                    # Display day with P&L and compliance - clickable
+                    # Display day with P&L and compliance - clickable with same height
                     pnl_color = "green" if pnl > 0 else "red" if pnl < 0 else "gray"
                     
-                    # Create clickable day button
+                    # Create clickable day button with fixed height
                     button_key = f"cal_day_{day_key}"
-                    if week_cols[i].button(
-                        f"{day} {compliance_color}\n${pnl:.2f}",
-                        key=button_key,
-                        help=f"Click to view {day_date.strftime('%B %d, %Y')}",
-                        use_container_width=True
-                    ):
+                    week_cols[i].markdown(f'''
+                    <div style="border: 2px solid #333; padding: 10px; height: 80px; background: rgba(0,20,40,0.3); 
+                                border-radius: 5px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                        <strong>{day} {compliance_color}</strong><br>
+                        <span style="color: {pnl_color};">${pnl:.2f}</span>
+                    </div>
+                    ''', unsafe_allow_html=True)
+                    
+                    if week_cols[i].button("View", key=button_key, help=f"Click to view {day_date.strftime('%B %d, %Y')}"):
                         st.session_state.current_date = day_date
                         st.session_state.page = "📈 Trading Review"
                         st.rerun()
                 else:
-                    # Empty day - still clickable
+                    # Empty day - still clickable with same height
                     empty_button_key = f"cal_empty_{day}_{first_day.month}_{first_day.year}"
-                    if week_cols[i].button(
-                        f"{day}\n---",
-                        key=empty_button_key,
-                        help=f"Click to add entry for {day_date.strftime('%B %d, %Y')}",
-                        use_container_width=True
-                    ):
+                    week_cols[i].markdown(f'''
+                    <div style="border: 2px solid #333; padding: 10px; height: 80px; background: rgba(0,0,0,0.2); 
+                                border-radius: 5px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                        <strong>{day}</strong><br>
+                        <span style="color: gray;">---</span>
+                    </div>
+                    ''', unsafe_allow_html=True)
+                    
+                    if week_cols[i].button("Add", key=empty_button_key, help=f"Click to add entry for {day_date.strftime('%B %d, %Y')}"):
                         st.session_state.current_date = day_date
                         st.session_state.page = "📈 Trading Review"
                         st.rerun()
         
-        # Weekly total column
+        # Weekly total column - SAME HEIGHT as calendar days
         week_color = "green" if week_pnl > 0 else "red" if week_pnl < 0 else "gray"
         week_cols[7].markdown(f'''
         <div style="border: 2px solid {week_color}; padding: 10px; height: 80px; 
@@ -929,7 +863,7 @@ elif page == "📊 Calendar View":
     with col3:
         st.markdown("⚪ No trading data")
     with col4:
-        st.markdown("💡 **Click any day to view/edit entry**")
+        st.markdown("💡 **Click View/Add to edit entries**")
 
 # ======== HISTORICAL ANALYSIS PAGE ========
 elif page == "📚 Historical Analysis":
@@ -1218,54 +1152,3 @@ if uploaded_file is not None:
         st.rerun()
     except:
         st.sidebar.error("Error importing data")
-
-# Show setup instructions if not connected
-if not st.session_state.github_connected:
-    st.markdown("---")
-    st.markdown("""
-    ## 🚀 **Complete GitHub Setup Guide**
-    
-    ### **🎯 Why GitHub? (100% Free!)**
-    - ✅ **No costs** - completely free for public repos
-    - ✅ **Unlimited storage** for text data and images
-    - ✅ **Access anywhere** - works with Streamlit Cloud
-    - ✅ **Version history** - never lose data
-    - ✅ **No API limits** - unlimited usage
-    
-    ### **📋 Step-by-Step Setup:**
-    
-    **1. Create GitHub Repository**
-    - Go to [GitHub.com](https://github.com) and sign in
-    - Click "New Repository" 
-    - Name: `trading-journal`
-    - Set to **Public** (required for free)
-    - Click "Create repository"
-    
-    **2. Get Personal Access Token**
-    - Go to GitHub Settings → Developer settings
-    - Personal access tokens → Tokens (classic)
-    - Click "Generate new token (classic)"
-    - Give it a name: "Trading Journal"
-    - Select scopes: **✅ repo** (full control)
-    - Click "Generate token"
-    - **Copy the token** (you won't see it again!)
-    
-    **3. Connect Above**
-    - Paste your token, username, and repo name
-    - Click "🔗 Connect to GitHub"
-    
-    ### **📸 Full-Size Screenshots Fixed!**
-    - Images now display at **full resolution**
-    - **GitHub stores** your screenshots permanently
-    - **Click to expand** for detailed viewing
-    - **Professional presentation** of your trading data
-    
-    ### **🎉 After Setup You Get:**
-    - **Automatic saving** to GitHub on every entry
-    - **Professional repository** with all your trading data
-    - **Screenshot gallery** organized by date
-    - **Access from any device** via Streamlit Cloud
-    - **Permanent backup** with version history
-    
-    *Once connected, your trading journal will be professional-grade and accessible anywhere!*
-    """)
