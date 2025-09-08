@@ -1,6 +1,13 @@
 {
   "2025-09-08": {
-    "morning": {},
+    "morning": {
+      "morning_screenshots": [
+        {
+          "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-08/morning_Screenshot 2025-09-08 085336.png",
+          "caption": "H4 - look for PW Hi to be taken"
+        }
+      ]
+    },
     "trading": {},
     "evening": {},
     "rules": [
