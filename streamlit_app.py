@@ -1508,10 +1508,21 @@ elif page == "📊 Trade Log Analysis":
         # No existing data - show upload interface
         st.subheader("📄 Upload Trade Log")
         
+        # Show PDF support status
+        if PDF_LIBS_AVAILABLE:
+            st.success(f"✅ PDF support enabled ({PDF_LIB_STATUS})")
+        else:
+            st.warning(f"⚠️ PDF support disabled ({PDF_LIB_STATUS})")
+            st.info("Install PyPDF2 or pdfplumber to enable PDF parsing: `pip install PyPDF2 pdfplumber`")
+        
         # UPDATED FILE UPLOADER WITH PDF SUPPORT
+        file_types = ['txt', 'csv', 'tsv']
+        if PDF_LIBS_AVAILABLE:
+            file_types.append('pdf')
+        
         uploaded_file = st.file_uploader(
-            f"Upload trade log for {selected_date.strftime('%B %d, %Y')} (CSV, TSV, or PDF format)",
-            type=['txt', 'csv', 'tsv', 'pdf'],  # ADDED PDF SUPPORT
+            f"Upload trade log for {selected_date.strftime('%B %d, %Y')} ({'CSV, TSV, or PDF' if PDF_LIBS_AVAILABLE else 'CSV or TSV'} format)",
+            type=file_types,
             help="Upload trade logs from your broker (e.g., TradeActivityLogExport files or AMP Futures PDF statements)",
             key=f"trade_log_upload_{date_key}"
         )
