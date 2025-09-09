@@ -1,21 +1,5 @@
 {
   "transactions": [],
-  "2025-09-09": {
-    "morning": {},
-    "trading": {
-      "pnl": -1069.9999999999854,
-      "process_grade": "A",
-      "grade_reasoning": "",
-      "general_comments": "",
-      "screenshot_notes": "",
-      "rule_compliance": {},
-      "what_could_improve": "",
-      "tomorrow_focus": "",
-      "trading_screenshots": []
-    },
-    "evening": {},
-    "rules": []
-  },
   "account_settings": {
     "starting_balance": 2479.5,
     "start_date": "2025-09-08",
