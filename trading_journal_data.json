@@ -61,6 +61,7 @@
     "trading": {},
     "evening": {},
     "rules": [
+      "micros on amp",
       "New rule - click to edit"
     ]
   }
