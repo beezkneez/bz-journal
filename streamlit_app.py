@@ -13,6 +13,23 @@ import io
 import requests
 import re
 
+# Initialize PDF variables immediately to prevent NameError
+PDF_LIBS_AVAILABLE = False
+PDF_LIB_STATUS = "Not initialized"
+
+# Test PDF library availability
+try:
+    import PyPDF2
+    PDF_LIBS_AVAILABLE = True
+    PDF_LIB_STATUS = "PyPDF2 available"
+except ImportError:
+    try:
+        import pdfplumber
+        PDF_LIBS_AVAILABLE = True
+        PDF_LIB_STATUS = "pdfplumber available"  
+    except ImportError:
+        PDF_LIB_STATUS = "No PDF libraries found"
+
 # Set page config
 st.set_page_config(
     page_title="Trading Journal",
