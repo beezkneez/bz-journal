@@ -1526,12 +1526,26 @@ elif page == "📊 Trade Log Analysis":
         
         # Show sample format
         st.subheader("📋 Supported File Formats")
-        st.write("Your trade log should be in CSV or TSV format with columns like:")
-        st.code("""
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**📄 CSV/TSV Format:**")
+            st.write("Your trade log should be in CSV or TSV format with columns like:")
+            st.code("""
 DateTime, Symbol, BuySell, Quantity, FillPrice, OrderType, OpenClose, PositionQuantity
 2025-09-08 05:49:31, F.US.mNQU25, Buy, 3, 23736.50, Market, Open, 3
 2025-09-08 06:06:38, F.US.mNQU25, Sell, 1, 23746.75, Market, Close, 2
-        """)
+            """)
+        
+        with col2:
+            st.markdown("**📄 PDF Format (AMP Futures):**")
+            st.write("Upload your AMP Futures daily statement PDF directly:")
+            st.write("✅ Automatically extracts individual trades")
+            st.write("✅ Calculates commission and fees")
+            st.write("✅ Processes MNQ and Mini-NASDAQ futures")
+            st.write("✅ Handles buy/sell quantities and prices")
+            st.info("💡 PDF parsing extracts data from Trade Confirmations section and auto-fills commission costs.")
 
 # ======== MORNING PREP PAGE - COMPLETELY FIXED ========
 elif page == "🌅 Morning Prep":
