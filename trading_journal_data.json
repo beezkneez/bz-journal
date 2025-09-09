@@ -15,5 +15,22 @@
     },
     "evening": {},
     "rules": []
+  },
+  "2025-09-10": {
+    "morning": {
+      "sleep_quality": 7,
+      "emotional_state": "Calm & Focused",
+      "post_night_shift": false,
+      "checked_news": true,
+      "market_news": "core PPI - 630am",
+      "triggers_present": "Golfing at 1040 but that leaves me enough time to make some entries and then wait for the news and then open of course.",
+      "grateful_for": "",
+      "daily_goal": "",
+      "trading_process": "If we can get back above PW-Hi (23900) then I would look long back to PM-Hi (24068), we took PW Hi on low volume at the end of the day on Tuesday the 9th.  So I would lean more bearish but let's wait and see for the 630 PPI move and trade what I see.  ",
+      "morning_screenshots": []
+    },
+    "trading": {},
+    "evening": {},
+    "rules": []
   }
 }
