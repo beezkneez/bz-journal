@@ -1,9 +1,4 @@
 {
-  "account_settings": {
-    "starting_balance": 600.0,
-    "start_date": "2025-09-09",
-    "last_updated": "2025-09-09 23:05:27"
-  },
   "transactions": [],
   "2025-09-09": {
     "morning": {},
