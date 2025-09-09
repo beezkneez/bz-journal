@@ -1509,43 +1509,43 @@ elif page == "📊 Trade Log Analysis":
         st.subheader("📄 Upload Trade Log")
         
         # Show PDF support status
-        if PDF_LIBS_AVAILABLE:
-            st.success(f"✅ PDF support enabled ({PDF_LIB_STATUS})")
-        else:
-            st.warning(f"⚠️ PDF support disabled ({PDF_LIB_STATUS})")
-            st.info("Install PyPDF2 or pdfplumber to enable PDF parsing: `pip install PyPDF2 pdfplumber`")
+        # if PDF_LIBS_AVAILABLE:
+            # st.success(f"✅ PDF support enabled ({PDF_LIB_STATUS})")
+        # else:
+            # st.warning(f"⚠️ PDF support disabled ({PDF_LIB_STATUS})")
+            # st.info("Install PyPDF2 or pdfplumber to enable PDF parsing: `pip install PyPDF2 pdfplumber`")
         
         # UPDATED FILE UPLOADER WITH PDF SUPPORT
-        file_types = ['txt', 'csv', 'tsv']
-        if PDF_LIBS_AVAILABLE:
-            file_types.append('pdf')
+        # file_types = ['txt', 'csv', 'tsv']
+        # if PDF_LIBS_AVAILABLE:
+            # file_types.append('pdf')
         
-        uploaded_file = st.file_uploader(
-            f"Upload trade log for {selected_date.strftime('%B %d, %Y')} ({'CSV, TSV, or PDF' if PDF_LIBS_AVAILABLE else 'CSV or TSV'} format)",
-            type=file_types,
-            help="Upload trade logs from your broker (e.g., TradeActivityLogExport files or AMP Futures PDF statements)",
-            key=f"trade_log_upload_{date_key}"
-        )
+        # uploaded_file = st.file_uploader(
+            # f"Upload trade log for {selected_date.strftime('%B %d, %Y')} ({'CSV, TSV, or PDF' if PDF_LIBS_AVAILABLE else 'CSV or TSV'} format)",
+            # type=file_types,
+            # help="Upload trade logs from your broker (e.g., TradeActivityLogExport files or AMP Futures PDF statements)",
+            # key=f"trade_log_upload_{date_key}"
+        # )
         
-        if uploaded_file is not None:
+        # if uploaded_file is not None:
             # Check if it's a PDF
-            if uploaded_file.type == "application/pdf":
-                pdf_content = uploaded_file.read()
-                trades, commissions, error = parse_trade_log(None, is_pdf=True, pdf_content=pdf_content)
-            else:
-                file_content = uploaded_file.read().decode('utf-8')
-                trades, commissions, error = parse_trade_log(file_content)
+            # if uploaded_file.type == "application/pdf":
+                # pdf_content = uploaded_file.read()
+                # trades, commissions, error = parse_trade_log(None, is_pdf=True, pdf_content=pdf_content)
+            # else:
+                # file_content = uploaded_file.read().decode('utf-8')
+                # trades, commissions, error = parse_trade_log(file_content)
             
-            if error:
-                st.error(f"Error parsing file: {error}")
-            else:
-                st.session_state.trade_data = trades
-                st.session_state.trade_analysis = analyze_trades(trades)
-                st.success(f"✅ Successfully parsed {len(trades)} trade records for {selected_date.strftime('%B %d, %Y')}!")
+            # if error:
+                # st.error(f"Error parsing file: {error}")
+            # else:
+                # st.session_state.trade_data = trades
+                # st.session_state.trade_analysis = analyze_trades(trades)
+                # st.success(f"✅ Successfully parsed {len(trades)} trade records for {selected_date.strftime('%B %d, %Y')}!")
                 
                 # Auto-fill commission if PDF provided it
-                if commissions > 0:
-                    st.info(f"💡 Commission automatically extracted from PDF: ${commissions:.2f}")
+                # if commissions > 0:
+                    # st.info(f"💡 Commission automatically extracted from PDF: ${commissions:.2f}")
     
     # Display analysis if available
     if st.session_state.trade_analysis:
