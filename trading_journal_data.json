@@ -3,5 +3,21 @@
     "starting_balance": 600.0,
     "start_date": "2025-09-09",
     "last_updated": "2025-09-09 15:11:36"
+  },
+  "2025-09-09": {
+    "morning": {},
+    "trading": {
+      "pnl": 50.0,
+      "process_grade": "A",
+      "grade_reasoning": "",
+      "general_comments": "",
+      "screenshot_notes": "",
+      "rule_compliance": {},
+      "what_could_improve": "",
+      "tomorrow_focus": "",
+      "trading_screenshots": []
+    },
+    "evening": {},
+    "rules": []
   }
 }
