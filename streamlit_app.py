@@ -776,22 +776,14 @@ if 'trade_log_action' not in st.session_state:
 st.markdown('<h1 class="main-header">📊 Trading Journal v7.3</h1>', unsafe_allow_html=True)
 
 # PDF Library Status Display
-# if not PDF_LIBS_AVAILABLE:
-  #   st.warning(f"⚠️ PDF Support: {PDF_LIB_STATUS}")
-    # with st.expander("📄 PDF Library Installation Help"):
-      #   st.write("**To enable PDF parsing, install one of these libraries:**")
-        # st.code("pip install PyPDF2")
-        # st.write("**OR**")
-        # st.code("pip install pdfplumber")
-        # st.write("**OR install both:**")
-        # st.code("pip install PyPDF2 pdfplumber")
-        # st.write("**After installation, restart Streamlit.**")
-        
-        # st.write("**If you're using Streamlit Cloud or a hosted environment:**")
-        # st.write("Add the library to your requirements.txt file:")
-        # st.code("PyPDF2==3.0.1\npdfplumber==0.7.6")
-# else:
-  #   st.success(f"✅ PDF Support: {PDF_LIB_STATUS}")
+if not PDF_LIBS_AVAILABLE:
+    st.warning(f"⚠️ PDF Support: {PDF_LIB_STATUS}")
+    with st.expander("📄 PDF Library Installation Help"):
+        st.write("**To enable PDF parsing, install one of these libraries:**")
+        st.code("pip install PyPDF2")
+        # ... rest of the section
+else:
+    st.success(f"✅ PDF Support: {PDF_LIB_STATUS}")
 
 # GitHub connection check and auto-setup
 if hasattr(st, 'secrets') and 'github' in st.secrets:
