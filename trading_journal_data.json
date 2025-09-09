@@ -2,7 +2,12 @@
   "transactions": [],
   "2025-09-09": {
     "morning": {},
-    "trading": {},
+    "trading": {
+      "pnl": -1069.9999999999854,
+      "trade_log_sync": true,
+      "gross_pnl": -892.9999999999854,
+      "commissions": 177.0
+    },
     "evening": {},
     "rules": []
   }
