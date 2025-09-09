@@ -1519,8 +1519,8 @@ elif page == "📊 Trade Log Analysis":
         saved_commissions = existing_trade_log.get('commissions', 0.0) if has_existing_data else 0.0
         
         # Auto-populate commission if extracted from PDF
-        if 'commissions' in locals() and commissions > 0:
-            default_commission = commissions
+        if hasattr(st.session_state, 'extracted_commissions') and st.session_state.extracted_commissions > 0:
+            default_commission = st.session_state.extracted_commissions
         else:
             default_commission = saved_commissions
         
