@@ -286,7 +286,7 @@ def display_image_full_size(image_source, caption="Screenshot"):
                 st.error(f"Could not load image: {image_source}")
 
 def parse_pdf_trade_log(pdf_content):
-    """Parse AMP Futures PDF trade log"""
+    """Parse AMP Futures PDF trade log - ALWAYS returns (trades, commissions, error)"""
     try:
         # Try to import PDF libraries
         try:
@@ -297,7 +297,7 @@ def parse_pdf_trade_log(pdf_content):
                 import pdfplumber
                 use_pypdf2 = False
             except ImportError:
-                return None, "PDF parsing libraries not available. Please install PyPDF2 or pdfplumber."
+                return None, 0.0, "PDF parsing libraries not available. Please install PyPDF2 or pdfplumber."
         
         # Extract text from PDF
         if use_pypdf2:
@@ -322,7 +322,6 @@ def parse_pdf_trade_log(pdf_content):
         
         # Look for trade confirmation sections
         lines = text.split('\n')
-        in_trade_section = False
         
         # Common patterns for AMP Futures format
         trade_patterns = [
@@ -392,13 +391,7 @@ def parse_pdf_trade_log(pdf_content):
                         continue
         
         if not trades:
-            # Try simpler parsing for different PDF formats
-            # Look for any numeric patterns that might be trades
-            for line in lines:
-                if any(keyword in line.upper() for keyword in ['BUY', 'SELL', 'MNQ', 'NQ', 'ES']):
-                    # Try to extract basic info using regex
-                    # This is a fallback for different PDF formats
-                    pass
+            return None, 0.0, "No trades found in PDF. Please check if this is an AMP Futures trading statement."
         
         return trades, commissions, None
         
