@@ -48,5 +48,18 @@
       "do not  move stops away from entry",
       "no random entries"
     ]
+  },
+  "2025-09-09": {
+    "morning": {
+      "morning_screenshots": [
+        {
+          "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-09/morning_1757423992_Screenshot 2025-09-09 071906.png",
+          "caption": "morning screenshot"
+        }
+      ]
+    },
+    "trading": {},
+    "evening": {},
+    "rules": []
   }
 }
