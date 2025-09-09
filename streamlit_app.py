@@ -67,6 +67,21 @@ st.markdown("""
         padding: 0.5rem;
         margin: 0.2rem 0;
     }
+    
+    .balance-display {
+        background: rgba(0, 20, 40, 0.8);
+        border: 2px solid #64ffda;
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    
+    .balance-amount {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #64ffda;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -476,6 +491,49 @@ def analyze_trades(trades):
     
     return analysis
 
+# NEW: Account Balance Functions
+def calculate_running_balance(data, target_date, starting_balance, start_date):
+    """Calculate running account balance up to target date"""
+    if not starting_balance or not start_date:
+        return starting_balance if starting_balance else 0
+    
+    # Convert string dates to date objects if needed
+    if isinstance(start_date, str):
+        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    if isinstance(target_date, str):
+        target_date = datetime.strptime(target_date, "%Y-%m-%d").date()
+    
+    running_balance = starting_balance
+    current_date = start_date
+    
+    while current_date <= target_date:
+        date_key = get_date_key(current_date)
+        if date_key in data and 'trading' in data[date_key]:
+            pnl = data[date_key]['trading'].get('pnl', 0)
+            running_balance += pnl
+        current_date += timedelta(days=1)
+    
+    return running_balance
+
+def get_account_settings(data):
+    """Get account balance settings from data"""
+    return data.get('account_settings', {
+        'starting_balance': 0.0,
+        'start_date': None,
+        'last_updated': None
+    })
+
+def save_account_settings(data, starting_balance, start_date):
+    """Save account balance settings to data"""
+    if 'account_settings' not in data:
+        data['account_settings'] = {}
+    
+    data['account_settings']['starting_balance'] = starting_balance
+    data['account_settings']['start_date'] = start_date.strftime("%Y-%m-%d") if isinstance(start_date, date) else start_date
+    data['account_settings']['last_updated'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    return data
+
 # Initialize session state - CALENDAR VIEW FIRST!
 if 'current_date' not in st.session_state:
     st.session_state.current_date = date.today()
@@ -506,6 +564,127 @@ if hasattr(st, 'secrets') and 'github' in st.secrets:
             st.session_state.github_token = st.secrets.github.token
             st.session_state.repo_owner = st.secrets.github.owner
             st.session_state.repo_name = st.secrets.github.repo
+
+# Load data (GitHub first, then local fallback)
+if st.session_state.get('github_connected', False):
+    try:
+        data = st.session_state.github_storage.load_all_journal_data()
+        if not data:  # If GitHub is empty, try to load local data
+            data = load_local_data()
+    except:
+        data = load_local_data()
+else:
+    data = load_local_data()
+
+# NEW: Account Balance Management in Sidebar
+st.sidebar.title("💰 Account Balance")
+
+# Get account settings
+account_settings = get_account_settings(data)
+current_balance = 0
+
+# Account balance setup
+if not account_settings.get('starting_balance') or not account_settings.get('start_date'):
+    # Setup required
+    with st.sidebar.expander("⚙️ Setup Account Tracking", expanded=True):
+        starting_balance = st.number_input(
+            "Starting Balance ($)",
+            min_value=0.0,
+            value=account_settings.get('starting_balance', 10000.0),
+            step=100.0,
+            format="%.2f"
+        )
+        
+        start_date = st.date_input(
+            "Start Date",
+            value=datetime.strptime(account_settings.get('start_date', date.today().strftime("%Y-%m-%d")), "%Y-%m-%d").date() if account_settings.get('start_date') else date.today(),
+            max_value=date.today()
+        )
+        
+        if st.button("💾 Save Balance Settings", key="save_balance_settings"):
+            data = save_account_settings(data, starting_balance, start_date)
+            
+            # Save to storage
+            if st.session_state.get('github_connected', False):
+                if st.session_state.github_storage.save_journal_entry("account_setup", {}, data):
+                    st.success("✅ Balance settings saved to GitHub!")
+                else:
+                    save_local_data(data)
+                    st.success("💾 Balance settings saved locally!")
+            else:
+                save_local_data(data)
+                st.success("💾 Balance settings saved locally!")
+            
+            st.rerun()
+else:
+    # Display current balance
+    starting_balance = account_settings['starting_balance']
+    start_date_str = account_settings['start_date']
+    start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+    
+    # Calculate current balance
+    current_balance = calculate_running_balance(data, st.session_state.current_date, starting_balance, start_date_obj)
+    
+    # Display balance with styling
+    balance_change = current_balance - starting_balance
+    balance_color = "#00ff88" if balance_change > 0 else "#ff4444" if balance_change < 0 else "#64ffda"
+    change_symbol = "↗" if balance_change > 0 else "↘" if balance_change < 0 else "→"
+    
+    st.sidebar.markdown(f"""
+    <div class="balance-display">
+        <div style="font-size: 1rem; color: #aaa;">Current Balance</div>
+        <div class="balance-amount" style="color: {balance_color};">
+            ${current_balance:,.2f} {change_symbol}
+        </div>
+        <div style="font-size: 0.9rem; color: #aaa;">
+            {change_symbol} ${abs(balance_change):,.2f} from start
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Balance management
+    with st.sidebar.expander("⚙️ Manage Balance"):
+        st.write(f"**Start Date:** {start_date_str}")
+        st.write(f"**Starting Balance:** ${starting_balance:,.2f}")
+        
+        # Option to reset/update
+        new_starting_balance = st.number_input(
+            "Update Starting Balance ($)",
+            min_value=0.0,
+            value=starting_balance,
+            step=100.0,
+            format="%.2f"
+        )
+        
+        new_start_date = st.date_input(
+            "Update Start Date",
+            value=start_date_obj,
+            max_value=date.today()
+        )
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("💾 Update", key="update_balance"):
+                data = save_account_settings(data, new_starting_balance, new_start_date)
+                
+                # Save to storage
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry("account_setup", {}, data)
+                save_local_data(data)
+                st.success("Updated!")
+                st.rerun()
+        
+        with col2:
+            if st.button("🗑️ Reset", key="reset_balance"):
+                if 'account_settings' in data:
+                    del data['account_settings']
+                
+                # Save to storage
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry("account_setup", {}, data)
+                save_local_data(data)
+                st.success("Reset!")
+                st.rerun()
 
 # Sidebar GitHub status
 st.sidebar.title("☁️ Cloud Storage")
@@ -541,6 +720,10 @@ if st.sidebar.button("📊 Trade Log Analysis", key="nav_tradelog", use_containe
 if st.sidebar.button("📚 Historical Analysis", key="nav_history", use_container_width=True):
     st.session_state.page = "📚 Historical Analysis"
 
+# NEW: Balance History Page
+if st.sidebar.button("💰 Balance History", key="nav_balance_history", use_container_width=True):
+    st.session_state.page = "💰 Balance History"
+
 page = st.session_state.page
 
 # Date selector - FIXED: Removed max_value restriction to allow future dates
@@ -557,17 +740,6 @@ if selected_date != st.session_state.current_date:
 
 date_key = get_date_key(selected_date)
 
-# Load data (GitHub first, then local fallback)
-if st.session_state.get('github_connected', False):
-    try:
-        data = st.session_state.github_storage.load_all_journal_data()
-        if not data:  # If GitHub is empty, try to load local data
-            data = load_local_data()
-    except:
-        data = load_local_data()
-else:
-    data = load_local_data()
-
 # Initialize date entry if doesn't exist
 if date_key not in data:
     data[date_key] = {
@@ -579,8 +751,150 @@ if date_key not in data:
 
 current_entry = data[date_key]
 
+# NEW: Balance History Page
+if page == "💰 Balance History":
+    st.markdown('<div class="section-header">💰 Account Balance History</div>', unsafe_allow_html=True)
+    
+    account_settings = get_account_settings(data)
+    
+    if not account_settings.get('starting_balance') or not account_settings.get('start_date'):
+        st.warning("⚠️ Please set up your account balance tracking in the sidebar first.")
+        st.info("Go to the sidebar and expand '⚙️ Setup Account Tracking' to get started.")
+    else:
+        starting_balance = account_settings['starting_balance']
+        start_date_str = account_settings['start_date']
+        start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        
+        # Date range for analysis
+        col1, col2 = st.columns(2)
+        with col1:
+            analysis_start = st.date_input(
+                "Start Date",
+                value=start_date_obj,
+                min_value=start_date_obj,
+                max_value=date.today()
+            )
+        with col2:
+            analysis_end = st.date_input(
+                "End Date",
+                value=date.today(),
+                min_value=start_date_obj,
+                max_value=date.today()
+            )
+        
+        # Calculate daily balances
+        balance_data = []
+        current_date = analysis_start
+        running_balance = calculate_running_balance(data, analysis_start, starting_balance, start_date_obj)
+        
+        while current_date <= analysis_end:
+            date_key = get_date_key(current_date)
+            daily_pnl = 0
+            
+            if date_key in data and 'trading' in data[date_key]:
+                daily_pnl = data[date_key]['trading'].get('pnl', 0)
+            
+            balance_data.append({
+                'date': current_date,
+                'date_str': current_date.strftime("%Y-%m-%d"),
+                'balance': running_balance,
+                'daily_pnl': daily_pnl,
+                'cumulative_pnl': running_balance - starting_balance
+            })
+            
+            running_balance += daily_pnl
+            current_date += timedelta(days=1)
+        
+        # Display summary metrics
+        if balance_data:
+            latest_balance = balance_data[-1]['balance']
+            total_pnl = latest_balance - starting_balance
+            best_day = max(balance_data, key=lambda x: x['daily_pnl'])
+            worst_day = min(balance_data, key=lambda x: x['daily_pnl'])
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Current Balance", f"${latest_balance:,.2f}")
+            with col2:
+                st.metric("Total P&L", f"${total_pnl:,.2f}", delta=f"{(total_pnl/starting_balance)*100:.2f}%")
+            with col3:
+                st.metric("Best Day", f"${best_day['daily_pnl']:,.2f}", delta=best_day['date_str'])
+            with col4:
+                st.metric("Worst Day", f"${worst_day['daily_pnl']:,.2f}", delta=worst_day['date_str'])
+            
+            # Balance chart
+            fig = go.Figure()
+            
+            # Balance line
+            fig.add_trace(go.Scatter(
+                x=[d['date'] for d in balance_data],
+                y=[d['balance'] for d in balance_data],
+                mode='lines+markers',
+                name='Account Balance',
+                line=dict(color='#64ffda', width=3),
+                marker=dict(size=4)
+            ))
+            
+            # Starting balance reference line
+            fig.add_hline(
+                y=starting_balance,
+                line_dash="dash",
+                line_color="gray",
+                annotation_text=f"Starting Balance: ${starting_balance:,.2f}"
+            )
+            
+            fig.update_layout(
+                title="Account Balance Over Time",
+                xaxis_title="Date",
+                yaxis_title="Balance ($)",
+                template="plotly_dark",
+                height=500
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Daily P&L chart
+            fig2 = go.Figure()
+            
+            colors = ['green' if pnl > 0 else 'red' if pnl < 0 else 'gray' for pnl in [d['daily_pnl'] for d in balance_data]]
+            
+            fig2.add_trace(go.Bar(
+                x=[d['date'] for d in balance_data],
+                y=[d['daily_pnl'] for d in balance_data],
+                marker_color=colors,
+                name="Daily P&L"
+            ))
+            
+            fig2.update_layout(
+                title="Daily P&L",
+                xaxis_title="Date",
+                yaxis_title="P&L ($)",
+                template="plotly_dark",
+                height=400
+            )
+            
+            st.plotly_chart(fig2, use_container_width=True)
+            
+            # Data table
+            st.subheader("📊 Balance History Table")
+            
+            df = pd.DataFrame(balance_data)
+            df['balance'] = df['balance'].apply(lambda x: f"${x:,.2f}")
+            df['daily_pnl'] = df['daily_pnl'].apply(lambda x: f"${x:,.2f}")
+            df['cumulative_pnl'] = df['cumulative_pnl'].apply(lambda x: f"${x:,.2f}")
+            
+            # Rename columns for display
+            df_display = df[['date_str', 'balance', 'daily_pnl', 'cumulative_pnl']].copy()
+            df_display.columns = ['Date', 'Balance', 'Daily P&L', 'Total P&L']
+            
+            # Show most recent first
+            df_display = df_display.sort_values('Date', ascending=False)
+            
+            st.dataframe(df_display, use_container_width=True, hide_index=True)
+
 # ======== CALENDAR VIEW PAGE ========
-if page == "📊 Calendar View":
+elif page == "📊 Calendar View":
     st.markdown('<div class="section-header">📊 Monthly Calendar</div>', unsafe_allow_html=True)
     
     # Month selector
@@ -723,7 +1037,7 @@ elif page == "📊 Trade Log Analysis":
                 st.session_state.trade_analysis = existing_trade_log.get('analysis', {})
                 st.rerun()
         with col2:
-            if st.button("🔄 Replace with New Upload", key="replace_upload"):
+            if st.button("📄 Replace with New Upload", key="replace_upload"):
                 st.session_state.trade_log_action = "upload_new"
                 st.session_state.trade_analysis = None
                 st.session_state.trade_data = None
@@ -894,7 +1208,7 @@ elif page == "📊 Trade Log Analysis":
                     st.success(f"💾 Trade analysis saved locally for {selected_date.strftime('%B %d, %Y')}!")
         
         with col2:
-            if st.button("🔄 Update Trading Review P&L"):
+            if st.button("📄 Update Trading Review P&L"):
                 # Update the trading review P&L with net P&L from trade log
                 if 'trading' not in current_entry:
                     current_entry['trading'] = {}
@@ -1286,7 +1600,7 @@ elif page == "📈 Trading Review":
         if current_entry['trading'].get('trade_log_sync', False):
             gross_pnl = current_entry['trading'].get('gross_pnl', 0)
             commissions = current_entry['trading'].get('commissions', 0)
-            st.info(f"🔄 P&L synced from Trade Log: Gross ${gross_pnl:.2f} - Commissions ${commissions:.2f} = Net ${pnl:.2f}")
+            st.info(f"📄 P&L synced from Trade Log: Gross ${gross_pnl:.2f} - Commissions ${commissions:.2f} = Net ${pnl:.2f}")
         
         process_grade = st.selectbox(
             "Grade Your Process (A-F)",
