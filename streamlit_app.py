@@ -491,9 +491,9 @@ def analyze_trades(trades):
     
     return analysis
 
-# NEW: Account Balance Functions
+# Account Balance Functions with Transaction Support
 def calculate_running_balance(data, target_date, starting_balance, start_date):
-    """Calculate running account balance up to target date"""
+    """Calculate running account balance up to target date including deposits/withdrawals"""
     if not starting_balance or not start_date:
         return starting_balance if starting_balance else 0
     
@@ -508,9 +508,20 @@ def calculate_running_balance(data, target_date, starting_balance, start_date):
     
     while current_date <= target_date:
         date_key = get_date_key(current_date)
+        
+        # Add trading P&L
         if date_key in data and 'trading' in data[date_key]:
             pnl = data[date_key]['trading'].get('pnl', 0)
             running_balance += pnl
+        
+        # Add deposits/withdrawals for this date
+        transactions = get_transactions_for_date(data, current_date)
+        for transaction in transactions:
+            if transaction['type'] == 'deposit':
+                running_balance += transaction['amount']
+            elif transaction['type'] == 'withdrawal':
+                running_balance -= transaction['amount']
+        
         current_date += timedelta(days=1)
     
     return running_balance
@@ -533,6 +544,73 @@ def save_account_settings(data, starting_balance, start_date):
     data['account_settings']['last_updated'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     return data
+
+# Transaction Management Functions
+def get_all_transactions(data):
+    """Get all deposits and withdrawals"""
+    return data.get('transactions', [])
+
+def add_transaction(data, transaction_date, transaction_type, amount, description=""):
+    """Add a deposit or withdrawal transaction"""
+    if 'transactions' not in data:
+        data['transactions'] = []
+    
+    transaction = {
+        'date': transaction_date.strftime("%Y-%m-%d") if isinstance(transaction_date, date) else transaction_date,
+        'type': transaction_type,  # 'deposit' or 'withdrawal'
+        'amount': float(amount),
+        'description': description,
+        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    
+    data['transactions'].append(transaction)
+    
+    # Sort transactions by date
+    data['transactions'].sort(key=lambda x: x['date'])
+    
+    return data
+
+def delete_transaction(data, transaction_index):
+    """Delete a transaction by index"""
+    if 'transactions' in data and 0 <= transaction_index < len(data['transactions']):
+        data['transactions'].pop(transaction_index)
+    return data
+
+def get_transactions_for_date(data, target_date):
+    """Get all transactions for a specific date"""
+    if isinstance(target_date, date):
+        target_date = target_date.strftime("%Y-%m-%d")
+    
+    transactions = data.get('transactions', [])
+    return [t for t in transactions if t['date'] == target_date]
+
+def calculate_total_deposits(data, up_to_date=None):
+    """Calculate total deposits up to a specific date"""
+    transactions = data.get('transactions', [])
+    total = 0
+    
+    for transaction in transactions:
+        transaction_date = transaction['date']
+        if up_to_date and transaction_date > up_to_date.strftime("%Y-%m-%d"):
+            continue
+        if transaction['type'] == 'deposit':
+            total += transaction['amount']
+    
+    return total
+
+def calculate_total_withdrawals(data, up_to_date=None):
+    """Calculate total withdrawals up to a specific date"""
+    transactions = data.get('transactions', [])
+    total = 0
+    
+    for transaction in transactions:
+        transaction_date = transaction['date']
+        if up_to_date and transaction_date > up_to_date.strftime("%Y-%m-%d"):
+            continue
+        if transaction['type'] == 'withdrawal':
+            total += transaction['amount']
+    
+    return total
 
 # Initialize session state - CALENDAR VIEW FIRST!
 if 'current_date' not in st.session_state:
@@ -576,7 +654,7 @@ if st.session_state.get('github_connected', False):
 else:
     data = load_local_data()
 
-# NEW: Account Balance Management in Sidebar
+# Account Balance Management in Sidebar
 st.sidebar.title("💰 Account Balance")
 
 # Get account settings
@@ -646,6 +724,13 @@ else:
     with st.sidebar.expander("⚙️ Manage Balance"):
         st.write(f"**Start Date:** {start_date_str}")
         st.write(f"**Starting Balance:** ${starting_balance:,.2f}")
+        
+        # Show transaction summary
+        total_deposits = calculate_total_deposits(data, st.session_state.current_date)
+        total_withdrawals = calculate_total_withdrawals(data, st.session_state.current_date)
+        
+        st.write(f"**Total Deposits:** ${total_deposits:,.2f}")
+        st.write(f"**Total Withdrawals:** ${total_withdrawals:,.2f}")
         
         # Option to reset/update
         new_starting_balance = st.number_input(
@@ -720,203 +805,9 @@ if st.sidebar.button("📊 Trade Log Analysis", key="nav_tradelog", use_containe
 if st.sidebar.button("📚 Historical Analysis", key="nav_history", use_container_width=True):
     st.session_state.page = "📚 Historical Analysis"
 
-# NEW: Transactions Page
-elif page == "💳 Deposits & Withdrawals":
-    st.markdown('<div class="section-header">💳 Account Transactions</div>', unsafe_allow_html=True)
-    
-    # Get all transactions
-    all_transactions = get_all_transactions(data)
-    
-    if not all_transactions:
-        st.info("No deposits or withdrawals recorded yet. Use the sidebar or the form below to add your first transaction.")
-    else:
-        # Summary metrics
-        total_deposits = sum([t['amount'] for t in all_transactions if t['type'] == 'deposit'])
-        total_withdrawals = sum([t['amount'] for t in all_transactions if t['type'] == 'withdrawal'])
-        net_flow = total_deposits - total_withdrawals
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Total Deposits", f"${total_deposits:,.2f}")
-        with col2:
-            st.metric("Total Withdrawals", f"${total_withdrawals:,.2f}")
-        with col3:
-            st.metric("Net Cash Flow", f"${net_flow:,.2f}", 
-                     delta=f"{'Positive' if net_flow > 0 else 'Negative' if net_flow < 0 else 'Neutral'} Flow")
-        with col4:
-            st.metric("Total Transactions", len(all_transactions))
-    
-    # Add new transaction form
-    st.subheader("➕ Add New Transaction")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        new_transaction_type = st.selectbox(
-            "Type",
-            ["deposit", "withdrawal"],
-            format_func=lambda x: "💰 Deposit" if x == "deposit" else "💸 Withdrawal"
-        )
-    
-    with col2:
-        new_transaction_amount = st.number_input(
-            "Amount ($)",
-            min_value=0.01,
-            step=10.0,
-            format="%.2f"
-        )
-    
-    with col3:
-        new_transaction_date = st.date_input(
-            "Date",
-            value=date.today(),
-            max_value=date.today()
-        )
-    
-    with col4:
-        new_transaction_description = st.text_input(
-            "Description",
-            placeholder="Optional description..."
-        )
-    
-    if st.button("💾 Add Transaction", type="primary"):
-        if new_transaction_amount > 0:
-            data = add_transaction(data, new_transaction_date, new_transaction_type, new_transaction_amount, new_transaction_description)
-            
-            # Save to storage
-            if st.session_state.get('github_connected', False):
-                st.session_state.github_storage.save_journal_entry("transactions", {}, data)
-            save_local_data(data)
-            
-            transaction_verb = "deposit" if new_transaction_type == "deposit" else "withdrawal"
-            st.success(f"${new_transaction_amount:.2f} {transaction_verb} added successfully!")
-            st.rerun()
-        else:
-            st.error("Amount must be greater than 0")
-    
-    # Transaction history
-    if all_transactions:
-        st.markdown("---")
-        st.subheader("📊 Transaction History")
-        
-        # Create DataFrame for display
-        df_transactions = []
-        for i, transaction in enumerate(reversed(all_transactions)):  # Show most recent first
-            df_transactions.append({
-                'Date': transaction['date'],
-                'Type': "💰 Deposit" if transaction['type'] == 'deposit' else "💸 Withdrawal",
-                'Amount': f"${transaction['amount']:,.2f}",
-                'Description': transaction.get('description', ''),
-                'Index': len(all_transactions) - 1 - i  # Original index for deletion
-            })
-        
-        # Display as dataframe
-        st.dataframe(
-            pd.DataFrame(df_transactions)[['Date', 'Type', 'Amount', 'Description']], 
-            use_container_width=True, 
-            hide_index=True
-        )
-        
-        # Transaction management
-        st.subheader("🛠️ Manage Transactions")
-        
-        # Select transaction to delete
-        transaction_options = []
-        for i, transaction in enumerate(all_transactions):
-            type_icon = "💰" if transaction['type'] == 'deposit' else "💸"
-            desc = f" - {transaction['description']}" if transaction.get('description') else ""
-            option = f"{transaction['date']} | {type_icon} ${transaction['amount']:,.2f}{desc}"
-            transaction_options.append(option)
-        
-        if transaction_options:
-            selected_transaction = st.selectbox(
-                "Select transaction to delete:",
-                range(len(transaction_options)),
-                format_func=lambda x: transaction_options[x]
-            )
-            
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                if st.button("🗑️ Delete Selected", key="delete_transaction"):
-                    data = delete_transaction(data, selected_transaction)
-                    
-                    # Save to storage
-                    if st.session_state.get('github_connected', False):
-                        st.session_state.github_storage.save_journal_entry("transactions", {}, data)
-                    save_local_data(data)
-                    
-                    st.success("Transaction deleted!")
-                    st.rerun()
-            
-            with col2:
-                st.warning("⚠️ Deleting a transaction will affect your account balance calculations.")
-        
-        # Visualizations
-        st.markdown("---")
-        st.subheader("📈 Transaction Visualizations")
-        
-        # Monthly summary chart
-        if len(all_transactions) > 1:
-            # Prepare data for monthly chart
-            monthly_data = {}
-            
-            for transaction in all_transactions:
-                transaction_date = datetime.strptime(transaction['date'], "%Y-%m-%d")
-                month_key = transaction_date.strftime("%Y-%m")
-                
-                if month_key not in monthly_data:
-                    monthly_data[month_key] = {'deposits': 0, 'withdrawals': 0}
-                
-                if transaction['type'] == 'deposit':
-                    monthly_data[month_key]['deposits'] += transaction['amount']
-                else:
-                    monthly_data[month_key]['withdrawals'] += transaction['amount']
-            
-            # Create chart
-            months = sorted(monthly_data.keys())
-            deposits = [monthly_data[month]['deposits'] for month in months]
-            withdrawals = [monthly_data[month]['withdrawals'] for month in months]
-            
-            fig = go.Figure()
-            
-            fig.add_trace(go.Bar(
-                x=months,
-                y=deposits,
-                name='💰 Deposits',
-                marker_color='green'
-            ))
-            
-            fig.add_trace(go.Bar(
-                x=months,
-                y=[-w for w in withdrawals],  # Negative for visual separation
-                name='💸 Withdrawals',
-                marker_color='red'
-            ))
-            
-            fig.update_layout(
-                title="Monthly Deposits vs Withdrawals",
-                xaxis_title="Month",
-                yaxis_title="Amount ($)",
-                template="plotly_dark",
-                height=400
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # Export transactions
-        st.markdown("---")
-        if st.button("📤 Export Transactions as CSV"):
-            df_export = pd.DataFrame(all_transactions)
-            csv = df_export.to_csv(index=False)
-            st.download_button(
-                label="Download CSV",
-                data=csv,
-                file_name=f"account_transactions_{date.today().strftime('%Y%m%d')}.csv",
-                mime="text/csv"
-            )
-if st.sidebar.button("💰 Balance History", key="nav_balance_history", use_container_width=True):
-    st.session_state.page = "💰 Balance History"
+# Enhanced Balance History Page
+if st.sidebar.button("💰 Balance & Ledger", key="nav_balance_history", use_container_width=True):
+    st.session_state.page = "💰 Balance & Ledger"
 
 page = st.session_state.page
 
@@ -945,9 +836,9 @@ if date_key not in data:
 
 current_entry = data[date_key]
 
-# NEW: Balance History Page
-if page == "💰 Balance History":
-    st.markdown('<div class="section-header">💰 Account Balance History</div>', unsafe_allow_html=True)
+# Enhanced Balance History Page with Transaction Ledger
+if page == "💰 Balance & Ledger":
+    st.markdown('<div class="section-header">💰 Account Balance & Transaction Ledger</div>', unsafe_allow_html=True)
     
     account_settings = get_account_settings(data)
     
@@ -959,7 +850,89 @@ if page == "💰 Balance History":
         start_date_str = account_settings['start_date']
         start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
         
+        # Add Transaction Ledger at the top
+        st.subheader("💳 Transaction Ledger")
+        
+        # Quick add transaction form
+        col1, col2, col3, col4, col5 = st.columns([1.5, 1, 1, 2, 1])
+        
+        with col1:
+            ledger_transaction_type = st.selectbox(
+                "Type",
+                ["deposit", "withdrawal"],
+                format_func=lambda x: "💰 Deposit" if x == "deposit" else "💸 Withdrawal",
+                key="ledger_type"
+            )
+        
+        with col2:
+            ledger_transaction_amount = st.number_input(
+                "Amount ($)",
+                min_value=0.01,
+                step=50.0,
+                format="%.2f",
+                key="ledger_amount"
+            )
+        
+        with col3:
+            ledger_transaction_date = st.date_input(
+                "Date",
+                value=date.today(),
+                max_value=date.today(),
+                key="ledger_date"
+            )
+        
+        with col4:
+            ledger_transaction_description = st.text_input(
+                "Description",
+                placeholder="e.g., Monthly deposit, Profit withdrawal...",
+                key="ledger_description"
+            )
+        
+        with col5:
+            st.markdown("<br>", unsafe_allow_html=True)  # Add space for alignment
+            if st.button("💾 Add", type="primary", key="ledger_add"):
+                if ledger_transaction_amount > 0:
+                    data = add_transaction(data, ledger_transaction_date, ledger_transaction_type, ledger_transaction_amount, ledger_transaction_description)
+                    
+                    # Save to storage
+                    if st.session_state.get('github_connected', False):
+                        st.session_state.github_storage.save_journal_entry("transactions", {}, data)
+                    save_local_data(data)
+                    
+                    transaction_verb = "deposited" if ledger_transaction_type == "deposit" else "withdrawn"
+                    st.success(f"${ledger_transaction_amount:.2f} {transaction_verb}! Balance updated.")
+                    st.rerun()
+                else:
+                    st.error("Amount must be greater than 0")
+        
+        # Recent transactions summary
+        all_transactions = get_all_transactions(data)
+        if all_transactions:
+            st.markdown("---")
+            st.subheader("📋 Recent Transactions")
+            
+            # Show last 5 transactions
+            recent_transactions = list(reversed(all_transactions[-5:]))
+            
+            for transaction in recent_transactions:
+                type_icon = "💰" if transaction['type'] == 'deposit' else "💸"
+                type_color = "green" if transaction['type'] == 'deposit' else "red"
+                amount_display = f"+${transaction['amount']:,.2f}" if transaction['type'] == 'deposit' else f"-${transaction['amount']:,.2f}"
+                desc = f" - {transaction['description']}" if transaction.get('description') else ""
+                
+                st.markdown(f"""
+                <div style="background: rgba(0,20,40,0.3); padding: 0.5rem; margin: 0.2rem 0; border-radius: 5px; border-left: 3px solid {type_color};">
+                    <strong>{transaction['date']}</strong> | {type_icon} <span style="color: {type_color};">{amount_display}</span>{desc}
+                </div>
+                """, unsafe_allow_html=True)
+            
+            if len(all_transactions) > 5:
+                st.info(f"Showing 5 most recent transactions. Total: {len(all_transactions)} transactions.")
+        
+        st.markdown("---")
+        
         # Date range for analysis
+        st.subheader("📊 Balance History Analysis")
         col1, col2 = st.columns(2)
         with col1:
             analysis_start = st.date_input(
@@ -976,7 +949,7 @@ if page == "💰 Balance History":
                 max_value=date.today()
             )
         
-        # Calculate daily balances
+        # Calculate daily balances including transactions
         balance_data = []
         current_date = analysis_start
         running_balance = calculate_running_balance(data, analysis_start, starting_balance, start_date_obj)
@@ -984,40 +957,55 @@ if page == "💰 Balance History":
         while current_date <= analysis_end:
             date_key = get_date_key(current_date)
             daily_pnl = 0
+            daily_deposits = 0
+            daily_withdrawals = 0
             
+            # Get trading P&L
             if date_key in data and 'trading' in data[date_key]:
                 daily_pnl = data[date_key]['trading'].get('pnl', 0)
+            
+            # Get transactions for this date
+            day_transactions = get_transactions_for_date(data, current_date)
+            for transaction in day_transactions:
+                if transaction['type'] == 'deposit':
+                    daily_deposits += transaction['amount']
+                else:
+                    daily_withdrawals += transaction['amount']
             
             balance_data.append({
                 'date': current_date,
                 'date_str': current_date.strftime("%Y-%m-%d"),
                 'balance': running_balance,
                 'daily_pnl': daily_pnl,
-                'cumulative_pnl': running_balance - starting_balance
+                'daily_deposits': daily_deposits,
+                'daily_withdrawals': daily_withdrawals,
+                'net_transactions': daily_deposits - daily_withdrawals,
+                'cumulative_pnl': running_balance - starting_balance - calculate_total_deposits(data, current_date) + calculate_total_withdrawals(data, current_date)
             })
             
-            running_balance += daily_pnl
+            # Update running balance for next day
+            running_balance += daily_pnl + daily_deposits - daily_withdrawals
             current_date += timedelta(days=1)
         
         # Display summary metrics
         if balance_data:
             latest_balance = balance_data[-1]['balance']
-            total_pnl = latest_balance - starting_balance
-            best_day = max(balance_data, key=lambda x: x['daily_pnl'])
-            worst_day = min(balance_data, key=lambda x: x['daily_pnl'])
+            total_deposits = calculate_total_deposits(data, analysis_end)
+            total_withdrawals = calculate_total_withdrawals(data, analysis_end)
+            total_pnl = latest_balance - starting_balance - total_deposits + total_withdrawals
             
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
                 st.metric("Current Balance", f"${latest_balance:,.2f}")
             with col2:
-                st.metric("Total P&L", f"${total_pnl:,.2f}", delta=f"{(total_pnl/starting_balance)*100:.2f}%")
+                st.metric("Trading P&L", f"${total_pnl:,.2f}", delta=f"{(total_pnl/starting_balance)*100:.2f}%")
             with col3:
-                st.metric("Best Day", f"${best_day['daily_pnl']:,.2f}", delta=best_day['date_str'])
+                st.metric("Total Deposits", f"${total_deposits:,.2f}")
             with col4:
-                st.metric("Worst Day", f"${worst_day['daily_pnl']:,.2f}", delta=worst_day['date_str'])
+                st.metric("Total Withdrawals", f"${total_withdrawals:,.2f}")
             
-            # Balance chart
+            # Enhanced balance chart with transactions
             fig = go.Figure()
             
             # Balance line
@@ -1027,8 +1015,41 @@ if page == "💰 Balance History":
                 mode='lines+markers',
                 name='Account Balance',
                 line=dict(color='#64ffda', width=3),
-                marker=dict(size=4)
+                marker=dict(size=4),
+                hovertemplate='<b>%{x}</b><br>Balance: $%{y:,.2f}<extra></extra>'
             ))
+            
+            # Add deposit markers
+            deposit_dates = [d['date'] for d in balance_data if d['daily_deposits'] > 0]
+            deposit_balances = [d['balance'] for d in balance_data if d['daily_deposits'] > 0]
+            deposit_amounts = [d['daily_deposits'] for d in balance_data if d['daily_deposits'] > 0]
+            
+            if deposit_dates:
+                fig.add_trace(go.Scatter(
+                    x=deposit_dates,
+                    y=deposit_balances,
+                    mode='markers',
+                    name='💰 Deposits',
+                    marker=dict(color='green', size=8, symbol='triangle-up'),
+                    hovertemplate='<b>%{x}</b><br>Deposit: $%{text}<br>Balance: $%{y:,.2f}<extra></extra>',
+                    text=[f"{amt:,.2f}" for amt in deposit_amounts]
+                ))
+            
+            # Add withdrawal markers
+            withdrawal_dates = [d['date'] for d in balance_data if d['daily_withdrawals'] > 0]
+            withdrawal_balances = [d['balance'] for d in balance_data if d['daily_withdrawals'] > 0]
+            withdrawal_amounts = [d['daily_withdrawals'] for d in balance_data if d['daily_withdrawals'] > 0]
+            
+            if withdrawal_dates:
+                fig.add_trace(go.Scatter(
+                    x=withdrawal_dates,
+                    y=withdrawal_balances,
+                    mode='markers',
+                    name='💸 Withdrawals',
+                    marker=dict(color='red', size=8, symbol='triangle-down'),
+                    hovertemplate='<b>%{x}</b><br>Withdrawal: $%{text}<br>Balance: $%{y:,.2f}<extra></extra>',
+                    text=[f"{amt:,.2f}" for amt in withdrawal_amounts]
+                ))
             
             # Starting balance reference line
             fig.add_hline(
@@ -1039,7 +1060,7 @@ if page == "💰 Balance History":
             )
             
             fig.update_layout(
-                title="Account Balance Over Time",
+                title="Account Balance Over Time (with Transactions)",
                 xaxis_title="Date",
                 yaxis_title="Balance ($)",
                 template="plotly_dark",
@@ -1048,240 +1069,84 @@ if page == "💰 Balance History":
             
             st.plotly_chart(fig, use_container_width=True)
             
-            # Daily P&L chart
-            fig2 = go.Figure()
-            
-            colors = ['green' if pnl > 0 else 'red' if pnl < 0 else 'gray' for pnl in [d['daily_pnl'] for d in balance_data]]
-            
-            fig2.add_trace(go.Bar(
-                x=[d['date'] for d in balance_data],
-                y=[d['daily_pnl'] for d in balance_data],
-                marker_color=colors,
-                name="Daily P&L"
-            ))
-            
-            fig2.update_layout(
-                title="Daily P&L",
-                xaxis_title="Date",
-                yaxis_title="P&L ($)",
-                template="plotly_dark",
-                height=400
-            )
-            
-            st.plotly_chart(fig2, use_container_width=True)
-            
-            # Data table
-            st.subheader("📊 Balance History Table")
-            
-            df = pd.DataFrame(balance_data)
-            df['balance'] = df['balance'].apply(lambda x: f"${x:,.2f}")
-            df['daily_pnl'] = df['daily_pnl'].apply(lambda x: f"${x:,.2f}")
-            df['cumulative_pnl'] = df['cumulative_pnl'].apply(lambda x: f"${x:,.2f}")
-            
-            # Rename columns for display
-            df_display = df[['date_str', 'balance', 'daily_pnl', 'cumulative_pnl']].copy()
-            df_display.columns = ['Date', 'Balance', 'Daily P&L', 'Total P&L']
-            
-            # Show most recent first
-            df_display = df_display.sort_values('Date', ascending=False)
-            
-            st.dataframe(df_display, use_container_width=True, hide_index=True)
-
-# NEW: Transactions Page
-elif page == "💳 Deposits & Withdrawals":
-    st.markdown('<div class="section-header">💳 Account Transactions</div>', unsafe_allow_html=True)
-    
-    # Get all transactions
-    all_transactions = get_all_transactions(data)
-    
-    if not all_transactions:
-        st.info("No deposits or withdrawals recorded yet. Use the sidebar or the form below to add your first transaction.")
-    else:
-        # Summary metrics
-        total_deposits = sum([t['amount'] for t in all_transactions if t['type'] == 'deposit'])
-        total_withdrawals = sum([t['amount'] for t in all_transactions if t['type'] == 'withdrawal'])
-        net_flow = total_deposits - total_withdrawals
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Total Deposits", f"${total_deposits:,.2f}")
-        with col2:
-            st.metric("Total Withdrawals", f"${total_withdrawals:,.2f}")
-        with col3:
-            st.metric("Net Cash Flow", f"${net_flow:,.2f}", 
-                     delta=f"{'Positive' if net_flow > 0 else 'Negative' if net_flow < 0 else 'Neutral'} Flow")
-        with col4:
-            st.metric("Total Transactions", len(all_transactions))
-    
-    # Add new transaction form
-    st.subheader("➕ Add New Transaction")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        new_transaction_type = st.selectbox(
-            "Type",
-            ["deposit", "withdrawal"],
-            format_func=lambda x: "💰 Deposit" if x == "deposit" else "💸 Withdrawal"
-        )
-    
-    with col2:
-        new_transaction_amount = st.number_input(
-            "Amount ($)",
-            min_value=0.01,
-            step=10.0,
-            format="%.2f"
-        )
-    
-    with col3:
-        new_transaction_date = st.date_input(
-            "Date",
-            value=date.today(),
-            max_value=date.today()
-        )
-    
-    with col4:
-        new_transaction_description = st.text_input(
-            "Description",
-            placeholder="Optional description..."
-        )
-    
-    if st.button("💾 Add Transaction", type="primary"):
-        if new_transaction_amount > 0:
-            data = add_transaction(data, new_transaction_date, new_transaction_type, new_transaction_amount, new_transaction_description)
-            
-            # Save to storage
-            if st.session_state.get('github_connected', False):
-                st.session_state.github_storage.save_journal_entry("transactions", {}, data)
-            save_local_data(data)
-            
-            transaction_verb = "deposit" if new_transaction_type == "deposit" else "withdrawal"
-            st.success(f"${new_transaction_amount:.2f} {transaction_verb} added successfully!")
-            st.rerun()
-        else:
-            st.error("Amount must be greater than 0")
-    
-    # Transaction history
-    if all_transactions:
-        st.markdown("---")
-        st.subheader("📊 Transaction History")
-        
-        # Create DataFrame for display
-        df_transactions = []
-        for i, transaction in enumerate(reversed(all_transactions)):  # Show most recent first
-            df_transactions.append({
-                'Date': transaction['date'],
-                'Type': "💰 Deposit" if transaction['type'] == 'deposit' else "💸 Withdrawal",
-                'Amount': f"${transaction['amount']:,.2f}",
-                'Description': transaction.get('description', ''),
-                'Index': len(all_transactions) - 1 - i  # Original index for deletion
-            })
-        
-        # Display as dataframe
-        st.dataframe(
-            pd.DataFrame(df_transactions)[['Date', 'Type', 'Amount', 'Description']], 
-            use_container_width=True, 
-            hide_index=True
-        )
-        
-        # Transaction management
-        st.subheader("🛠️ Manage Transactions")
-        
-        # Select transaction to delete
-        transaction_options = []
-        for i, transaction in enumerate(all_transactions):
-            type_icon = "💰" if transaction['type'] == 'deposit' else "💸"
-            desc = f" - {transaction['description']}" if transaction.get('description') else ""
-            option = f"{transaction['date']} | {type_icon} ${transaction['amount']:,.2f}{desc}"
-            transaction_options.append(option)
-        
-        if transaction_options:
-            selected_transaction = st.selectbox(
-                "Select transaction to delete:",
-                range(len(transaction_options)),
-                format_func=lambda x: transaction_options[x]
-            )
-            
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                if st.button("🗑️ Delete Selected", key="delete_transaction"):
-                    data = delete_transaction(data, selected_transaction)
-                    
-                    # Save to storage
-                    if st.session_state.get('github_connected', False):
-                        st.session_state.github_storage.save_journal_entry("transactions", {}, data)
-                    save_local_data(data)
-                    
-                    st.success("Transaction deleted!")
-                    st.rerun()
-            
-            with col2:
-                st.warning("⚠️ Deleting a transaction will affect your account balance calculations.")
-        
-        # Visualizations
-        st.markdown("---")
-        st.subheader("📈 Transaction Visualizations")
-        
-        # Monthly summary chart
-        if len(all_transactions) > 1:
-            # Prepare data for monthly chart
-            monthly_data = {}
-            
-            for transaction in all_transactions:
-                transaction_date = datetime.strptime(transaction['date'], "%Y-%m-%d")
-                month_key = transaction_date.strftime("%Y-%m")
+            # Transaction management section
+            if all_transactions:
+                st.markdown("---")
+                st.subheader("🛠️ Manage All Transactions")
                 
-                if month_key not in monthly_data:
-                    monthly_data[month_key] = {'deposits': 0, 'withdrawals': 0}
+                # Create DataFrame for display
+                df_transactions = []
+                for i, transaction in enumerate(reversed(all_transactions)):
+                    df_transactions.append({
+                        'Date': transaction['date'],
+                        'Type': "💰 Deposit" if transaction['type'] == 'deposit' else "💸 Withdrawal",
+                        'Amount': f"${transaction['amount']:,.2f}",
+                        'Description': transaction.get('description', ''),
+                        'Index': len(all_transactions) - 1 - i
+                    })
                 
-                if transaction['type'] == 'deposit':
-                    monthly_data[month_key]['deposits'] += transaction['amount']
-                else:
-                    monthly_data[month_key]['withdrawals'] += transaction['amount']
-            
-            # Create chart
-            months = sorted(monthly_data.keys())
-            deposits = [monthly_data[month]['deposits'] for month in months]
-            withdrawals = [monthly_data[month]['withdrawals'] for month in months]
-            
-            fig = go.Figure()
-            
-            fig.add_trace(go.Bar(
-                x=months,
-                y=deposits,
-                name='💰 Deposits',
-                marker_color='green'
-            ))
-            
-            fig.add_trace(go.Bar(
-                x=months,
-                y=[-w for w in withdrawals],  # Negative for visual separation
-                name='💸 Withdrawals',
-                marker_color='red'
-            ))
-            
-            fig.update_layout(
-                title="Monthly Deposits vs Withdrawals",
-                xaxis_title="Month",
-                yaxis_title="Amount ($)",
-                template="plotly_dark",
-                height=400
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # Export transactions
-        st.markdown("---")
-        if st.button("📤 Export Transactions as CSV"):
-            df_export = pd.DataFrame(all_transactions)
-            csv = df_export.to_csv(index=False)
-            st.download_button(
-                label="Download CSV",
-                data=csv,
-                file_name=f"account_transactions_{date.today().strftime('%Y%m%d')}.csv",
-                mime="text/csv"
-            )
+                # Display transaction table
+                st.dataframe(
+                    pd.DataFrame(df_transactions)[['Date', 'Type', 'Amount', 'Description']], 
+                    use_container_width=True, 
+                    hide_index=True
+                )
+                
+                # Delete transaction functionality
+                with st.expander("🗑️ Delete Transaction"):
+                    transaction_options = []
+                    for i, transaction in enumerate(all_transactions):
+                        type_icon = "💰" if transaction['type'] == 'deposit' else "💸"
+                        desc = f" - {transaction['description']}" if transaction.get('description') else ""
+                        option = f"{transaction['date']} | {type_icon} ${transaction['amount']:,.2f}{desc}"
+                        transaction_options.append(option)
+                    
+                    if transaction_options:
+                        selected_transaction = st.selectbox(
+                            "Select transaction to delete:",
+                            range(len(transaction_options)),
+                            format_func=lambda x: transaction_options[x]
+                        )
+                        
+                        col1, col2 = st.columns([1, 3])
+                        with col1:
+                            if st.button("🗑️ Delete Selected", key="delete_transaction_balance"):
+                                data = delete_transaction(data, selected_transaction)
+                                
+                                # Save to storage
+                                if st.session_state.get('github_connected', False):
+                                    st.session_state.github_storage.save_journal_entry("transactions", {}, data)
+                                save_local_data(data)
+                                
+                                st.success("Transaction deleted! Balance will update.")
+                                st.rerun()
+                        
+                        with col2:
+                            st.warning("⚠️ Deleting a transaction will affect your balance calculations.")
+                
+                # Export functionality
+                st.markdown("---")
+                if st.button("📤 Export Complete Ledger as CSV"):
+                    # Create comprehensive export with balance data
+                    export_data = []
+                    for day in balance_data:
+                        export_data.append({
+                            'Date': day['date_str'],
+                            'Balance': day['balance'],
+                            'Trading_PnL': day['daily_pnl'],
+                            'Deposits': day['daily_deposits'],
+                            'Withdrawals': day['daily_withdrawals'],
+                            'Net_Transactions': day['net_transactions']
+                        })
+                    
+                    df_export = pd.DataFrame(export_data)
+                    csv = df_export.to_csv(index=False)
+                    st.download_button(
+                        label="Download Balance Ledger CSV",
+                        data=csv,
+                        file_name=f"balance_ledger_{date.today().strftime('%Y%m%d')}.csv",
+                        mime="text/csv"
+                    )
 
 # ======== CALENDAR VIEW PAGE ========
 elif page == "📊 Calendar View":
