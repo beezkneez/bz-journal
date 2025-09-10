@@ -20,9 +20,19 @@
     },
     "trading": {
       "pnl": 320.0000000000073,
-      "trade_log_sync": true,
-      "gross_pnl": 420.0000000000073,
-      "commissions": 100.0
+      "process_grade": "A",
+      "grade_reasoning": "",
+      "general_comments": "",
+      "screenshot_notes": "",
+      "rule_compliance": {
+        "rule_0": true,
+        "rule_1": true,
+        "rule_2": true,
+        "rule_3": true
+      },
+      "what_could_improve": "",
+      "tomorrow_focus": "",
+      "trading_screenshots": []
     },
     "evening": {},
     "rules": [
