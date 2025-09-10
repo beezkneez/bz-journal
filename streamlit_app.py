@@ -1765,7 +1765,7 @@ elif page == "🌅 Morning Prep":
         trading_process = st.text_area(
             "Trading Process Focus",
             value=current_entry['morning'].get('trading_process', ""),
-            height=100
+            height=200
         )
         
         st.subheader("Trading Rules")
