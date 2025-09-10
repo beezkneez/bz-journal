@@ -32,7 +32,12 @@
       },
       "what_could_improve": "",
       "tomorrow_focus": "",
-      "trading_screenshots": []
+      "trading_screenshots": [
+        {
+          "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trading_1757539247_Screenshot 2025-09-10 152012.png",
+          "caption": "Gap fill day"
+        }
+      ]
     },
     "evening": {},
     "rules": [
