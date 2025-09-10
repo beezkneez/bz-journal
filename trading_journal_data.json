@@ -39,6 +39,17 @@
           ],
           "outcome": "pending",
           "screenshot": null
+        },
+        {
+          "id": "6b72d491-2947-4da9-aa6c-30996500a8cd",
+          "timestamp": "2025-09-10 14:46:47",
+          "description": "ES looking weak, plus abosorption on NQ -  NQ hasn't spenyt any time above 5 min openiogn range and its been 75 minutes\n",
+          "tags": [
+            "test",
+            "absorption"
+          ],
+          "outcome": "pending",
+          "screenshot": null
         }
       ]
     }
