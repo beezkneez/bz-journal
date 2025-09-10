@@ -21,6 +21,7 @@
     "trading": {},
     "evening": {},
     "rules": [
+      "Max 3 micro contracts",
       "New rule - click to edit"
     ]
   }
