@@ -22,6 +22,7 @@
     "evening": {},
     "rules": [
       "Max 3 micro contracts",
+      "Do not give back more than 30% of a day",
       "New rule - click to edit"
     ]
   }
