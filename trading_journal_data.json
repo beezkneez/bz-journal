@@ -72,19 +72,6 @@
           ],
           "outcome": "pending",
           "screenshot": null
-        },
-        {
-          "id": "0984e171-229d-4300-9ec4-d3c8c1565bb3",
-          "timestamp": "2025-09-10 14:50:40",
-          "description": "fedsdfdfs",
-          "tags": [
-            "absorption"
-          ],
-          "outcome": "pending",
-          "screenshot": {
-            "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trade_1757515839_F.US.ENQU25.2025-09-10_144017.653.png",
-            "caption": "fdsfd"
-          }
         }
       ]
     }
