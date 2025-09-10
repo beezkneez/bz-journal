@@ -11,6 +11,7 @@ import base64
 from PIL import Image
 import io
 import requests
+import uuid  # NEW: Added for trade IDs
 
 # Set page config
 st.set_page_config(
@@ -20,7 +21,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for dark theme
+# Custom CSS for dark theme - UPDATED WITH NEW TRADE DAY STYLES
 st.markdown("""
 <style>
     .main-header {
@@ -81,6 +82,43 @@ st.markdown("""
         font-size: 1.8rem;
         font-weight: bold;
         color: #64ffda;
+    }
+    
+    .trade-card {
+        background: rgba(0, 20, 40, 0.4);
+        border: 1px solid #64ffda;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+    
+    .tag-chip {
+        display: inline-block;
+        background: rgba(100, 255, 218, 0.2);
+        border: 1px solid #64ffda;
+        border-radius: 15px;
+        padding: 0.2rem 0.8rem;
+        margin: 0.2rem;
+        font-size: 0.8rem;
+        color: #64ffda;
+    }
+    
+    .win-tag {
+        background: rgba(0, 255, 0, 0.2);
+        border-color: #00ff00;
+        color: #00ff00;
+    }
+    
+    .loss-tag {
+        background: rgba(255, 0, 0, 0.2);
+        border-color: #ff0000;
+        color: #ff0000;
+    }
+    
+    .pending-tag {
+        background: rgba(255, 255, 0, 0.2);
+        border-color: #ffff00;
+        color: #ffff00;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -283,6 +321,88 @@ def display_image_full_size(image_source, caption="Screenshot"):
                 st.image(image, caption=caption, use_container_width=True)
             except:
                 st.error(f"Could not load image: {image_source}")
+
+# NEW TRADE DAY FUNCTIONS
+def get_all_tags(data):
+    """Get all unique tags from the system"""
+    return data.get('tags', [])
+
+def add_tag_to_system(data, new_tag):
+    """Add a new tag to the global tag system"""
+    if 'tags' not in data:
+        data['tags'] = []
+    
+    # Normalize tag (lowercase, strip whitespace)
+    normalized_tag = new_tag.strip().lower()
+    
+    if normalized_tag and normalized_tag not in [tag.lower() for tag in data['tags']]:
+        data['tags'].append(new_tag.strip())
+        data['tags'].sort()  # Keep tags sorted
+    
+    return data
+
+def create_new_trade(trade_description, tags, outcome, screenshot_data=None):
+    """Create a new trade entry"""
+    return {
+        'id': str(uuid.uuid4()),
+        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'description': trade_description,
+        'tags': tags,
+        'outcome': outcome,  # 'win', 'loss', 'pending'
+        'screenshot': screenshot_data  # {'url': '', 'caption': ''} or None
+    }
+
+def get_trade_statistics(data):
+    """Get statistics across all trades"""
+    all_trades = []
+    
+    # Collect all trades from all dates
+    for date_key, entry in data.items():
+        if date_key != 'tags' and 'trade_day' in entry:
+            trades = entry['trade_day'].get('trades', [])
+            for trade in trades:
+                trade['date'] = date_key
+                all_trades.append(trade)
+    
+    if not all_trades:
+        return {}
+    
+    # Calculate statistics
+    total_trades = len(all_trades)
+    win_trades = [t for t in all_trades if t.get('outcome') == 'win']
+    loss_trades = [t for t in all_trades if t.get('outcome') == 'loss']
+    pending_trades = [t for t in all_trades if t.get('outcome') == 'pending']
+    
+    # Tag statistics
+    tag_counts = {}
+    tag_win_rates = {}
+    
+    for trade in all_trades:
+        for tag in trade.get('tags', []):
+            if tag not in tag_counts:
+                tag_counts[tag] = {'total': 0, 'wins': 0, 'losses': 0}
+            
+            tag_counts[tag]['total'] += 1
+            if trade.get('outcome') == 'win':
+                tag_counts[tag]['wins'] += 1
+            elif trade.get('outcome') == 'loss':
+                tag_counts[tag]['losses'] += 1
+    
+    # Calculate win rates for each tag
+    for tag, counts in tag_counts.items():
+        completed = counts['wins'] + counts['losses']
+        tag_win_rates[tag] = (counts['wins'] / completed * 100) if completed > 0 else 0
+    
+    return {
+        'total_trades': total_trades,
+        'win_trades': len(win_trades),
+        'loss_trades': len(loss_trades),
+        'pending_trades': len(pending_trades),
+        'win_rate': (len(win_trades) / (len(win_trades) + len(loss_trades)) * 100) if (len(win_trades) + len(loss_trades)) > 0 else 0,
+        'tag_counts': tag_counts,
+        'tag_win_rates': tag_win_rates,
+        'recent_trades': sorted(all_trades, key=lambda x: x['timestamp'], reverse=True)[:10]
+    }
 
 def parse_trade_log(file_content):
     """Parse uploaded trade log file"""
@@ -630,8 +750,8 @@ if 'last_analysis_date' not in st.session_state:
 if 'trade_log_action' not in st.session_state:
     st.session_state.trade_log_action = None
 
-# Main header - UPDATED VERSION TO 7.3
-st.markdown('<h1 class="main-header">📊 Trading Journal v7.3</h1>', unsafe_allow_html=True)
+# Main header - UPDATED VERSION TO 7.4
+st.markdown('<h1 class="main-header">📊 Trading Journal v7.4</h1>', unsafe_allow_html=True)
 
 # GitHub connection check and auto-setup
 if hasattr(st, 'secrets') and 'github' in st.secrets:
@@ -782,16 +902,20 @@ if st.session_state.get('github_connected', False):
 else:
     st.sidebar.warning("⚠️ GitHub not connected")
 
-# Sidebar navigation with buttons - CALENDAR FIRST!
+# UPDATED SIDEBAR NAVIGATION - ADDED TRADE DAY AND TAG MANAGEMENT
 st.sidebar.markdown("---")
 st.sidebar.title("📋 Navigation")
 
-# Navigation buttons - CALENDAR VIEW FIRST!
+# Navigation buttons - CALENDAR VIEW FIRST, THEN TRADE DAY!
 if st.sidebar.button("📊 Calendar View", key="nav_calendar", use_container_width=True):
     st.session_state.page = "📊 Calendar View"
 
 if st.sidebar.button("🌅 Morning Prep", key="nav_morning", use_container_width=True):
     st.session_state.page = "🌅 Morning Prep"
+
+# NEW: TRADE DAY NAVIGATION BUTTON
+if st.sidebar.button("📈 Trade Day", key="nav_trade_day", use_container_width=True):
+    st.session_state.page = "📈 Trade Day"
 
 if st.sidebar.button("📈 Trading Review", key="nav_trading", use_container_width=True):
     st.session_state.page = "📈 Trading Review"
@@ -809,6 +933,10 @@ if st.sidebar.button("📚 Historical Analysis", key="nav_history", use_containe
 if st.sidebar.button("💰 Balance & Ledger", key="nav_balance_history", use_container_width=True):
     st.session_state.page = "💰 Balance & Ledger"
 
+# NEW: Tag Management Button
+if st.sidebar.button("🏷️ Tag Management", key="nav_tag_management", use_container_width=True):
+    st.session_state.page = "🏷️ Tag Management"
+
 page = st.session_state.page
 
 # Date selector - FIXED: Removed max_value restriction to allow future dates
@@ -825,10 +953,11 @@ if selected_date != st.session_state.current_date:
 
 date_key = get_date_key(selected_date)
 
-# Initialize date entry if doesn't exist
+# UPDATED: Initialize date entry if doesn't exist - ADDED TRADE_DAY
 if date_key not in data:
     data[date_key] = {
         'morning': {},
+        'trade_day': {},  # NEW: Initialize trade_day section
         'trading': {},
         'evening': {},
         'rules': []
@@ -1264,6 +1393,433 @@ elif page == "📊 Calendar View":
     with col4:
         st.markdown("💡 **Click View/Add to edit entries**")
 
+# ======== NEW TRADE DAY PAGE ========
+elif page == "📈 Trade Day":
+    st.markdown('<div class="section-header">📈 Live Trade Day</div>', unsafe_allow_html=True)
+    
+    # Show current date and delete option
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown(f"### 📅 {selected_date.strftime('%A, %B %d, %Y')}")
+    with col2:
+        if st.button("🗑️ Delete Entry", key="delete_trade_day", help="Delete all trade day data for this date"):
+            if 'trade_day' in current_entry:
+                del current_entry['trade_day']
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+                save_local_data(data)
+                st.success("Trade day entry deleted!")
+                st.rerun()
+    
+    # Initialize trade_day if doesn't exist
+    if 'trade_day' not in current_entry:
+        current_entry['trade_day'] = {'market_observations': '', 'trades': []}
+    
+    # Market Observations Section
+    st.subheader("🔍 Market Observations")
+    market_observations = st.text_area(
+        "What do you see in the markets today?",
+        value=current_entry['trade_day'].get('market_observations', ''),
+        height=150,
+        placeholder="Market conditions, trends, key levels, news impact, volume patterns, sector rotation, etc.",
+        key="market_observations"
+    )
+    
+    # Save market observations
+    if st.button("💾 Save Market Observations", key="save_observations"):
+        current_entry['trade_day']['market_observations'] = market_observations
+        
+        if st.session_state.get('github_connected', False):
+            if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                st.success("✅ Market observations saved!")
+        else:
+            save_local_data(data)
+            st.success("💾 Market observations saved!")
+    
+    st.markdown("---")
+    
+    # Add New Trade Section
+    st.subheader("➕ Add New Trade")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Trade description
+        trade_description = st.text_area(
+            "Trade Description",
+            placeholder="Describe your trade setup, entry reasoning, target, stop loss, etc.",
+            height=100,
+            key="new_trade_description"
+        )
+        
+        # Screenshot upload for trade
+        trade_screenshot = st.file_uploader(
+            "Trade Screenshot",
+            type=['png', 'jpg', 'jpeg'],
+            help="Upload entry chart, setup screenshot, or other relevant image",
+            key="new_trade_screenshot"
+        )
+        
+        screenshot_caption = ""
+        if trade_screenshot:
+            screenshot_caption = st.text_input(
+                "Screenshot Caption",
+                placeholder="Describe this screenshot...",
+                key="new_trade_screenshot_caption"
+            )
+    
+    with col2:
+        # Tags section
+        st.markdown("**Tags:**")
+        
+        # Get existing tags
+        all_tags = get_all_tags(data)
+        
+        # Multi-select for existing tags
+        selected_tags = st.multiselect(
+            "Select existing tags",
+            options=all_tags,
+            key="trade_tags_select"
+        )
+        
+        # Add new tags
+        new_tags_input = st.text_input(
+            "Add new tags (comma-separated)",
+            placeholder="scalp, breakout, TSLA",
+            key="new_tags_input"
+        )
+        
+        # Parse new tags
+        new_tags = []
+        if new_tags_input.strip():
+            new_tags = [tag.strip() for tag in new_tags_input.split(',') if tag.strip()]
+            
+        # Combine all tags
+        all_trade_tags = selected_tags + new_tags
+        
+        # Trade outcome
+        trade_outcome = st.selectbox(
+            "Trade Outcome",
+            options=["pending", "win", "loss"],
+            format_func=lambda x: {
+                "pending": "⏳ Pending", 
+                "win": "✅ Win", 
+                "loss": "❌ Loss"
+            }[x],
+            key="trade_outcome"
+        )
+    
+    # Add trade button
+    if st.button("🚀 Add Trade", type="primary", key="add_trade"):
+        if not trade_description.strip():
+            st.warning("⚠️ Please add a trade description!")
+        else:
+            # Handle screenshot upload
+            screenshot_data = None
+            if trade_screenshot and screenshot_caption.strip():
+                if st.session_state.get('github_connected', False):
+                    # Upload to GitHub
+                    file_data = trade_screenshot.getvalue()
+                    timestamp = int(datetime.now().timestamp())
+                    filename = f"trade_{timestamp}_{trade_screenshot.name}"
+                    screenshot_url = st.session_state.github_storage.upload_screenshot(
+                        file_data, filename, date_key
+                    )
+                    if screenshot_url:
+                        screenshot_data = {'url': screenshot_url, 'caption': screenshot_caption}
+                else:
+                    # Save locally
+                    screenshot_path = save_uploaded_file_local(trade_screenshot, date_key, "trade")
+                    if screenshot_path:
+                        screenshot_data = {'url': screenshot_path, 'caption': screenshot_caption}
+            
+            # Add new tags to system
+            for tag in new_tags:
+                data = add_tag_to_system(data, tag)
+            
+            # Create trade
+            new_trade = create_new_trade(
+                trade_description, 
+                all_trade_tags, 
+                trade_outcome, 
+                screenshot_data
+            )
+            
+            # Add trade to current entry
+            if 'trades' not in current_entry['trade_day']:
+                current_entry['trade_day']['trades'] = []
+            
+            current_entry['trade_day']['trades'].append(new_trade)
+            current_entry['trade_day']['market_observations'] = market_observations
+            
+            # Save
+            if st.session_state.get('github_connected', False):
+                if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                    st.success("✅ Trade added and saved to GitHub!")
+                else:
+                    save_local_data(data)
+                    st.success("💾 Trade added and saved locally!")
+            else:
+                save_local_data(data)
+                st.success("💾 Trade added and saved locally!")
+            
+            # Clear the form by rerunning
+            st.rerun()
+    
+    st.markdown("---")
+    
+    # Display Existing Trades for Today
+    existing_trades = current_entry['trade_day'].get('trades', [])
+    
+    if existing_trades:
+        st.subheader(f"📋 Today's Trades ({len(existing_trades)})")
+        
+        for i, trade in enumerate(existing_trades):
+            with st.expander(f"Trade {i+1}: {trade['description'][:50]}..." if len(trade['description']) > 50 else f"Trade {i+1}: {trade['description']}"):
+                
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    st.markdown(f"**Time:** {trade['timestamp']}")
+                    st.markdown(f"**Description:** {trade['description']}")
+                    
+                    # Display tags
+                    if trade.get('tags'):
+                        tags_html = ""
+                        for tag in trade['tags']:
+                            tags_html += f'<span class="tag-chip">{tag}</span>'
+                        st.markdown(f"**Tags:** {tags_html}", unsafe_allow_html=True)
+                    
+                    # Display outcome with styling
+                    outcome = trade.get('outcome', 'pending')
+                    outcome_colors = {
+                        'win': ('#00ff00', '✅'),
+                        'loss': ('#ff0000', '❌'), 
+                        'pending': ('#ffff00', '⏳')
+                    }
+                    color, icon = outcome_colors.get(outcome, ('#ffffff', '❓'))
+                    st.markdown(f"**Outcome:** <span style='color: {color}; font-weight: bold;'>{icon} {outcome.upper()}</span>", unsafe_allow_html=True)
+                    
+                    # Display screenshot if exists
+                    if trade.get('screenshot'):
+                        st.markdown(f"**Screenshot:** {trade['screenshot']['caption']}")
+                        display_image_full_size(trade['screenshot']['url'], trade['screenshot']['caption'])
+                
+                with col2:
+                    # Edit outcome
+                    new_outcome = st.selectbox(
+                        "Update Outcome",
+                        options=["pending", "win", "loss"],
+                        index=["pending", "win", "loss"].index(outcome),
+                        format_func=lambda x: {"pending": "⏳ Pending", "win": "✅ Win", "loss": "❌ Loss"}[x],
+                        key=f"outcome_update_{trade['id']}"
+                    )
+                    
+                    if new_outcome != outcome:
+                        if st.button(f"💾 Update", key=f"update_outcome_{trade['id']}"):
+                            trade['outcome'] = new_outcome
+                            
+                            # Save updated trade
+                            if st.session_state.get('github_connected', False):
+                                st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+                            save_local_data(data)
+                            st.success("Trade outcome updated!")
+                            st.rerun()
+                    
+                    # Delete trade button
+                    if st.button(f"🗑️ Delete", key=f"delete_trade_{trade['id']}"):
+                        current_entry['trade_day']['trades'].pop(i)
+                        
+                        if st.session_state.get('github_connected', False):
+                            st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+                        save_local_data(data)
+                        st.success("Trade deleted!")
+                        st.rerun()
+    else:
+        st.info("No trades recorded for today. Add your first trade above!")
+
+# ======== NEW TAG MANAGEMENT PAGE ========
+elif page == "🏷️ Tag Management":
+    st.markdown('<div class="section-header">🏷️ Tag Management & Statistics</div>', unsafe_allow_html=True)
+    
+    # Get trade statistics
+    trade_stats = get_trade_statistics(data)
+    
+    if trade_stats:
+        # Overall statistics
+        st.subheader("📊 Overall Trade Statistics")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total Trades", trade_stats['total_trades'])
+        with col2:
+            st.metric("Win Rate", f"{trade_stats['win_rate']:.1f}%")
+        with col3:
+            st.metric("Wins", trade_stats['win_trades'], delta=None)
+        with col4:
+            st.metric("Losses", trade_stats['loss_trades'], delta=None)
+        
+        # Tag statistics table
+        st.subheader("🏷️ Tag Performance")
+        
+        if trade_stats['tag_counts']:
+            # Create DataFrame for tag statistics
+            tag_data = []
+            for tag, counts in trade_stats['tag_counts'].items():
+                completed = counts['wins'] + counts['losses']
+                win_rate = (counts['wins'] / completed * 100) if completed > 0 else 0
+                
+                tag_data.append({
+                    'Tag': tag,
+                    'Total Trades': counts['total'],
+                    'Wins': counts['wins'],
+                    'Losses': counts['losses'],
+                    'Pending': counts['total'] - completed,
+                    'Win Rate %': f"{win_rate:.1f}%"
+                })
+            
+            # Sort by total trades
+            tag_df = pd.DataFrame(tag_data)
+            tag_df = tag_df.sort_values('Total Trades', ascending=False)
+            
+            st.dataframe(tag_df, use_container_width=True, hide_index=True)
+            
+            # Tag performance chart
+            if len(tag_data) > 0:
+                # Filter tags with at least one completed trade for the chart
+                chart_data = [t for t in tag_data if t['Wins'] + t['Losses'] > 0]
+                
+                if chart_data:
+                    fig = go.Figure()
+                    
+                    tags = [t['Tag'] for t in chart_data]
+                    win_rates = [float(t['Win Rate %'].replace('%', '')) for t in chart_data]
+                    total_trades = [t['Total Trades'] for t in chart_data]
+                    
+                    # Color bars by win rate
+                    colors = ['green' if wr >= 60 else 'orange' if wr >= 40 else 'red' for wr in win_rates]
+                    
+                    fig.add_trace(go.Bar(
+                        x=tags,
+                        y=win_rates,
+                        marker_color=colors,
+                        text=[f"{wr:.1f}%<br>({tt} trades)" for wr, tt in zip(win_rates, total_trades)],
+                        textposition='auto',
+                        name="Win Rate"
+                    ))
+                    
+                    fig.update_layout(
+                        title="Tag Performance by Win Rate",
+                        xaxis_title="Tags",
+                        yaxis_title="Win Rate (%)",
+                        template="plotly_dark",
+                        showlegend=False
+                    )
+                    
+                    # Add horizontal line at 50%
+                    fig.add_hline(y=50, line_dash="dash", line_color="gray", 
+                                 annotation_text="Break-even line")
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+        
+        # Recent trades
+        st.subheader("📈 Recent Trades")
+        recent_trades = trade_stats.get('recent_trades', [])[:5]
+        
+        for trade in recent_trades:
+            outcome_colors = {
+                'win': 'green',
+                'loss': 'red',
+                'pending': 'orange'
+            }
+            outcome_icons = {
+                'win': '✅',
+                'loss': '❌',
+                'pending': '⏳'
+            }
+            
+            color = outcome_colors.get(trade.get('outcome', 'pending'), 'gray')
+            icon = outcome_icons.get(trade.get('outcome', 'pending'), '❓')
+            
+            # Create tags display
+            tags_html = ""
+            for tag in trade.get('tags', []):
+                tags_html += f'<span class="tag-chip">{tag}</span>'
+            
+            st.markdown(f"""
+            <div class="trade-card">
+                <strong>{trade.get('date', 'Unknown Date')} - {trade.get('timestamp', 'Unknown Time').split(' ')[1]}</strong>
+                <span style="color: {color}; float: right;">{icon} {trade.get('outcome', 'pending').upper()}</span>
+                <br>
+                <strong>Description:</strong> {trade.get('description', 'No description')[:100]}{'...' if len(trade.get('description', '')) > 100 else ''}
+                <br>
+                <strong>Tags:</strong> {tags_html}
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # Tag management
+    st.markdown("---")
+    st.subheader("🛠️ Manage Tags")
+    
+    all_tags = get_all_tags(data)
+    
+    if all_tags:
+        st.write(f"**Current tags ({len(all_tags)}):**")
+        
+        # Display all tags with delete option
+        for tag in all_tags:
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.markdown(f'<span class="tag-chip">{tag}</span>', unsafe_allow_html=True)
+            with col2:
+                if st.button("🗑️", key=f"delete_tag_{tag}", help=f"Delete tag '{tag}'"):
+                    # Remove tag from system
+                    data['tags'].remove(tag)
+                    
+                    # Remove tag from all trades
+                    for date_key, entry in data.items():
+                        if date_key != 'tags' and 'trade_day' in entry:
+                            for trade in entry['trade_day'].get('trades', []):
+                                if 'tags' in trade and tag in trade['tags']:
+                                    trade['tags'].remove(tag)
+                    
+                    # Save changes
+                    if st.session_state.get('github_connected', False):
+                        st.session_state.github_storage.save_journal_entry("tags", {}, data)
+                    save_local_data(data)
+                    st.success(f"Tag '{tag}' deleted from system!")
+                    st.rerun()
+    else:
+        st.info("No tags created yet. Add tags when creating trades.")
+    
+    # Add new tags manually
+    st.subheader("➕ Add New Tags")
+    new_tags_manual = st.text_input(
+        "Add tags (comma-separated)",
+        placeholder="momentum, reversal, gap-up, earnings-play",
+        key="manual_tags_input"
+    )
+    
+    if st.button("💾 Add Tags", key="add_manual_tags"):
+        if new_tags_manual.strip():
+            tags_to_add = [tag.strip() for tag in new_tags_manual.split(',') if tag.strip()]
+            added_count = 0
+            
+            for tag in tags_to_add:
+                if tag not in get_all_tags(data):
+                    data = add_tag_to_system(data, tag)
+                    added_count += 1
+            
+            if added_count > 0:
+                # Save changes
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry("tags", {}, data)
+                save_local_data(data)
+                st.success(f"Added {added_count} new tags!")
+                st.rerun()
+            else:
+                st.info("All tags already exist in the system.")
+
 # ======== TRADE LOG ANALYSIS PAGE ========
 elif page == "📊 Trade Log Analysis":
     st.markdown('<div class="section-header">📊 Trade Log Analysis</div>', unsafe_allow_html=True)
@@ -1292,7 +1848,7 @@ elif page == "📊 Trade Log Analysis":
                 st.session_state.trade_analysis = existing_trade_log.get('analysis', {})
                 st.rerun()
         with col2:
-            if st.button("📄 Replace with New Upload", key="replace_upload"):
+            if st.button("🔄 Replace with New Upload", key="replace_upload"):
                 st.session_state.trade_log_action = "upload_new"
                 st.session_state.trade_analysis = None
                 st.session_state.trade_data = None
@@ -1307,7 +1863,7 @@ elif page == "📊 Trade Log Analysis":
         
     elif has_existing_data and st.session_state.trade_log_action == "upload_new":
         # User chose to upload new - show upload interface
-        st.subheader("📄 Upload New Trade Log")
+        st.subheader("🔄 Upload New Trade Log")
         st.info("Upload a new file to replace the existing trade log data.")
         
         uploaded_file = st.file_uploader(
@@ -1335,7 +1891,7 @@ elif page == "📊 Trade Log Analysis":
         
     else:
         # No existing data - show upload interface
-        st.subheader("📄 Upload Trade Log")
+        st.subheader("🔄 Upload Trade Log")
         
         uploaded_file = st.file_uploader(
             f"Upload trade log for {selected_date.strftime('%B %d, %Y')} (CSV or TSV format)",
@@ -1463,7 +2019,7 @@ elif page == "📊 Trade Log Analysis":
                     st.success(f"💾 Trade analysis saved locally for {selected_date.strftime('%B %d, %Y')}!")
         
         with col2:
-            if st.button("📄 Update Trading Review P&L"):
+            if st.button("🔄 Update Trading Review P&L"):
                 # Update the trading review P&L with net P&L from trade log
                 if 'trading' not in current_entry:
                     current_entry['trading'] = {}
@@ -1869,7 +2425,7 @@ elif page == "📈 Trading Review":
         if current_entry['trading'].get('trade_log_sync', False):
             gross_pnl = current_entry['trading'].get('gross_pnl', 0)
             commissions = current_entry['trading'].get('commissions', 0)
-            st.info(f"📄 P&L synced from Trade Log: Gross ${gross_pnl:.2f} - Commissions ${commissions:.2f} = Net ${pnl:.2f}")
+            st.info(f"🔄 P&L synced from Trade Log: Gross ${gross_pnl:.2f} - Commissions ${commissions:.2f} = Net ${pnl:.2f}")
         
         process_grade = st.selectbox(
             "Grade Your Process (A-F)",
@@ -2315,6 +2871,55 @@ elif page == "📚 Historical Analysis":
                                         st.write(f"*{screenshot_caption}:*")
                                         display_image_full_size(screenshot_link, screenshot_caption)
                     
+                    # Trade Day Section
+                    if 'trade_day' in entry and entry['trade_day']:
+                        st.markdown("### 📈 Trade Day")
+                        trade_day = entry['trade_day']
+                        
+                        if 'market_observations' in trade_day and trade_day['market_observations']:
+                            st.write(f"**Market Observations:** {trade_day['market_observations']}")
+                        
+                        # Display trades
+                        trades = trade_day.get('trades', [])
+                        if trades:
+                            st.write(f"**Trades ({len(trades)}):**")
+                            for k, trade in enumerate(trades):
+                                outcome = trade.get('outcome', 'pending')
+                                outcome_colors = {
+                                    'win': 'green',
+                                    'loss': 'red',
+                                    'pending': 'orange'
+                                }
+                                outcome_icons = {
+                                    'win': '✅',
+                                    'loss': '❌',
+                                    'pending': '⏳'
+                                }
+                                
+                                color = outcome_colors.get(outcome, 'gray')
+                                icon = outcome_icons.get(outcome, '❓')
+                                
+                                # Create tags display
+                                tags_html = ""
+                                for tag in trade.get('tags', []):
+                                    tags_html += f'<span class="tag-chip">{tag}</span>'
+                                
+                                st.markdown(f"""
+                                <div class="trade-card">
+                                    <strong>Trade {k+1} - {trade.get('timestamp', 'Unknown Time').split(' ')[1]}</strong>
+                                    <span style="color: {color}; float: right;">{icon} {outcome.upper()}</span>
+                                    <br>
+                                    <strong>Description:</strong> {trade.get('description', 'No description')[:100]}{'...' if len(trade.get('description', '')) > 100 else ''}
+                                    <br>
+                                    <strong>Tags:</strong> {tags_html}
+                                </div>
+                                """, unsafe_allow_html=True)
+                                
+                                # Display trade screenshot if exists
+                                if trade.get('screenshot'):
+                                    st.write(f"*{trade['screenshot']['caption']}:*")
+                                    display_image_full_size(trade['screenshot']['url'], trade['screenshot']['caption'])
+                    
                     # Trading Section
                     if 'trading' in entry and entry['trading']:
                         st.markdown("### 📈 Trading Review")
@@ -2385,7 +2990,7 @@ elif page == "📚 Historical Analysis":
         else:
             st.info("No trading data found for the selected date range.")
 
-# Sidebar stats - FIXED RULE COMPLIANCE CALCULATION + PROCESS GRADE TRACKING
+# UPDATED SIDEBAR STATS - FIXED RULE COMPLIANCE CALCULATION + PROCESS GRADE TRACKING + TRADE STATS
 st.sidebar.markdown("---")
 st.sidebar.subheader("📊 Quick Stats")
 
@@ -2490,6 +3095,21 @@ if recent_grades:
         st.sidebar.write(f"Last {len(recent_grades)} grades: {' → '.join(recent_grades[-5:])}")
 else:
     st.sidebar.write("No grades yet")
+
+# NEW: Display trade stats in sidebar if available
+trade_stats = get_trade_statistics(data)
+if trade_stats and trade_stats['total_trades'] > 0:
+    st.sidebar.markdown("**🏷️ Trade Stats**")
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        st.metric("Total Trades", trade_stats['total_trades'])
+    with col2:
+        st.metric("Win Rate", f"{trade_stats['win_rate']:.1f}%")
+    
+    if trade_stats['recent_trades']:
+        latest_outcome = trade_stats['recent_trades'][0].get('outcome', 'pending').upper()
+        outcome_emoji = {'WIN': '✅', 'LOSS': '❌', 'PENDING': '⏳'}.get(latest_outcome, '❓')
+        st.sidebar.write(f"**Latest:** {outcome_emoji} {latest_outcome}")
 
 # Export/Import functionality
 st.sidebar.markdown("---")
