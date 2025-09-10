@@ -28,21 +28,7 @@
     ],
     "trade_day": {
       "market_observations": "fdsdsffds",
-      "trades": [
-        {
-          "id": "1f7ce7b9-4d4a-4673-89bd-04b410477ecf",
-          "timestamp": "2025-09-10 15:01:42",
-          "description": "Test 1",
-          "tags": [
-            "test"
-          ],
-          "outcome": "pending",
-          "screenshot": {
-            "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trade_1757516501_F.US.ENQU25.2025-09-10_144017.653.png",
-            "caption": "dssadsa"
-          }
-        }
-      ]
+      "trades": []
     }
   },
   "account_settings": {
