@@ -44,6 +44,62 @@ def get_theme_css(theme):
     if theme == "dark":
         return """
 <style>
+    /* DARK THEME - Override Streamlit's core elements */
+    .stApp {
+        background: linear-gradient(180deg, #0e1117 0%, #1a1a2e 100%) !important;
+    }
+    
+    /* Main content background */
+    .main .block-container {
+        background: rgba(14, 17, 23, 0.9) !important;
+        padding-top: 2rem !important;
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg, .css-1q8dd3e {
+        background: linear-gradient(180deg, #16213e 0%, #0f1419 100%) !important;
+    }
+    
+    /* Override all text colors */
+    .stApp, .stApp * {
+        color: #fafafa !important;
+    }
+    
+    /* Selectbox and input styling */
+    .stSelectbox > div > div {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: #fafafa !important;
+        border: 1px solid #64ffda !important;
+    }
+    
+    .stTextInput > div > div > input,
+    .stTextArea > div > div > textarea,
+    .stNumberInput > div > div > input {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: #fafafa !important;
+        border: 1px solid #64ffda !important;
+    }
+    
+    /* Button styling */
+    .stButton > button {
+        background-color: rgba(100, 255, 218, 0.1) !important;
+        color: #64ffda !important;
+        border: 1px solid #64ffda !important;
+    }
+    
+    .stButton > button:hover {
+        background-color: rgba(100, 255, 218, 0.2) !important;
+        color: #ffffff !important;
+    }
+    
+    /* Metrics styling */
+    .metric-container {
+        background-color: rgba(0, 20, 40, 0.6) !important;
+        border: 1px solid #64ffda !important;
+        border-radius: 10px !important;
+        padding: 1rem !important;
+    }
+    
     .main-header {
         font-size: 3rem;
         font-weight: bold;
@@ -56,7 +112,7 @@ def get_theme_css(theme):
     
     .section-header {
         font-size: 1.5rem;
-        color: #64ffda;
+        color: #64ffda !important;
         border-bottom: 2px solid #64ffda;
         padding-bottom: 0.5rem;
         margin: 1rem 0;
@@ -145,6 +201,68 @@ def get_theme_css(theme):
     else:  # light theme
         return """
 <style>
+    /* LIGHT THEME - Override Streamlit's core elements */
+    .stApp {
+        background: linear-gradient(180deg, #ffffff 0%, #f0f2f6 100%) !important;
+    }
+    
+    /* Main content background */
+    .main .block-container {
+        background: rgba(255, 255, 255, 0.95) !important;
+        padding-top: 2rem !important;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg, .css-1q8dd3e {
+        background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%) !important;
+        border-right: 1px solid #dee2e6 !important;
+    }
+    
+    /* Override text colors for light theme */
+    .stApp, .stApp * {
+        color: #212529 !important;
+    }
+    
+    /* Selectbox and input styling */
+    .stSelectbox > div > div {
+        background-color: #ffffff !important;
+        color: #212529 !important;
+        border: 1px solid #1976d2 !important;
+    }
+    
+    .stTextInput > div > div > input,
+    .stTextArea > div > div > textarea,
+    .stNumberInput > div > div > input {
+        background-color: #ffffff !important;
+        color: #212529 !important;
+        border: 1px solid #1976d2 !important;
+    }
+    
+    /* Button styling */
+    .stButton > button {
+        background-color: rgba(25, 118, 210, 0.1) !important;
+        color: #1976d2 !important;
+        border: 1px solid #1976d2 !important;
+    }
+    
+    .stButton > button:hover {
+        background-color: rgba(25, 118, 210, 0.2) !important;
+        color: #0d47a1 !important;
+    }
+    
+    /* Primary button styling */
+    .stButton > button[kind="primary"] {
+        background-color: #1976d2 !important;
+        color: #ffffff !important;
+        border: none !important;
+    }
+    
+    .stButton > button[kind="primary"]:hover {
+        background-color: #0d47a1 !important;
+    }
+    
     .main-header {
         font-size: 3rem;
         font-weight: bold;
@@ -157,7 +275,7 @@ def get_theme_css(theme):
     
     .section-header {
         font-size: 1.5rem;
-        color: #1976d2;
+        color: #1976d2 !important;
         border-bottom: 2px solid #1976d2;
         padding-bottom: 0.5rem;
         margin: 1rem 0;
@@ -181,7 +299,8 @@ def get_theme_css(theme):
         background: rgba(255,255,255,0.9);
         text-align: center;
         cursor: pointer;
-        color: #333;
+        color: #333 !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     
     .trade-row {
@@ -190,7 +309,8 @@ def get_theme_css(theme):
         border-radius: 5px;
         padding: 0.5rem;
         margin: 0.2rem 0;
-        color: #333;
+        color: #333 !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
     
     .balance-display {
@@ -216,7 +336,7 @@ def get_theme_css(theme):
         padding: 1rem;
         margin: 1rem 0;
         box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-        color: #333;
+        color: #333 !important;
     }
     
     .tag-chip {
@@ -248,30 +368,20 @@ def get_theme_css(theme):
         color: #f57c00;
     }
     
-    /* Override Streamlit's default dark theme elements for light mode */
-    .stSelectbox > div > div {
-        background-color: white !important;
-        color: #333 !important;
+    /* Fix sidebar text colors */
+    .css-1d391kg *, .css-1q8dd3e * {
+        color: #212529 !important;
     }
     
-    .stTextInput > div > div > input {
-        background-color: white !important;
-        color: #333 !important;
+    /* Expander styling */
+    .streamlit-expanderHeader {
+        background-color: rgba(255, 255, 255, 0.5) !important;
+        border: 1px solid #dee2e6 !important;
     }
     
-    .stTextArea > div > div > textarea {
-        background-color: white !important;
-        color: #333 !important;
-    }
-    
-    .stNumberInput > div > div > input {
-        background-color: white !important;
-        color: #333 !important;
-    }
-    
-    /* Sidebar styling for light theme */
-    .css-1d391kg, .css-1q8dd3e {
-        background-color: #f8f9fa !important;
+    /* Dataframe styling */
+    .stDataFrame {
+        background-color: #ffffff !important;
     }
 </style>
 """
