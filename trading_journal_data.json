@@ -18,7 +18,12 @@
         }
       ]
     },
-    "trading": {},
+    "trading": {
+      "pnl": 320.0000000000073,
+      "trade_log_sync": true,
+      "gross_pnl": 420.0000000000073,
+      "commissions": 100.0
+    },
     "evening": {},
     "rules": [
       "Micros only - if add more than 3 - tighten SL",
