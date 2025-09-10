@@ -30,6 +30,20 @@ except ImportError:
     except ImportError:
         PDF_LIB_STATUS = "No PDF libraries found"
 
+# Debug: Test imports manually
+st.write("Debug: Testing PDF imports...")
+try:
+    import PyPDF2
+    st.success("PyPDF2 imported successfully")
+except ImportError as e:
+    st.error(f"PyPDF2 import failed: {e}")
+
+try:
+    import pdfplumber  
+    st.success("pdfplumber imported successfully")
+except ImportError as e:
+    st.error(f"pdfplumber import failed: {e}")
+
 # Set page config
 st.set_page_config(
     page_title="Trading Journal",
