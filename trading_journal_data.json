@@ -24,5 +24,10 @@
       "Max 3 micro contracts",
       "Do not give back more than 30% of a day"
     ]
+  },
+  "account_settings": {
+    "starting_balance": 660.7,
+    "start_date": "2025-09-10",
+    "last_updated": "2025-09-10 13:27:21"
   }
 }
