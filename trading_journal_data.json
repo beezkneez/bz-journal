@@ -2602,6 +2602,25 @@
     "morning": {},
     "trading": {},
     "evening": {},
-    "rules": []
+    "rules": [],
+    "trade_day": {
+      "market_observations": "",
+      "trades": [],
+      "session_analytics": {
+        "total_trades": 15,
+        "winners": 9,
+        "losers": 4,
+        "break_even": 2,
+        "avg_winner": 45.5,
+        "avg_loser": -28.75,
+        "largest_winner": 89.25,
+        "largest_loser": -52.0,
+        "avg_winner_duration": 12,
+        "avg_loser_duration": 8,
+        "gross_pnl": 312.5,
+        "daily_commission": 14.0,
+        "net_pnl": 298.5
+      }
+    }
   }
 }
