@@ -892,15 +892,15 @@ else:
                 st.rerun()
 
 # Sidebar GitHub status
-st.sidebar.title("☁️ Cloud Storage")
-if st.session_state.get('github_connected', False):
-    st.sidebar.success("✅ Connected to GitHub")
-    repo_url = f"https://github.com/{st.session_state.repo_owner}/{st.session_state.repo_name}"
-    st.sidebar.markdown(f"🔗 [View Repository]({repo_url})")
-    screenshots_url = f"{repo_url}/tree/main/screenshots"
-    st.sidebar.markdown(f"📸 [View Screenshots]({screenshots_url})")
-else:
-    st.sidebar.warning("⚠️ GitHub not connected")
+# st.sidebar.title("☁️ Cloud Storage")
+# if st.session_state.get('github_connected', False):
+  #   st.sidebar.success("✅ Connected to GitHub")
+  #   repo_url = f"https://github.com/{st.session_state.repo_owner}/{st.session_state.repo_name}"
+   #  st.sidebar.markdown(f"🔗 [View Repository]({repo_url})")
+   #  screenshots_url = f"{repo_url}/tree/main/screenshots"
+   #  st.sidebar.markdown(f"📸 [View Screenshots]({screenshots_url})")
+# else:
+  #   st.sidebar.warning("⚠️ GitHub not connected")
 
 # MOVED: Date selector - Now ABOVE navigation menu
 st.sidebar.markdown("---")
