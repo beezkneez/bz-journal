@@ -48,7 +48,21 @@
     ],
     "trade_day": {
       "market_observations": "fdsdsffds",
-      "trades": []
+      "trades": [
+        {
+          "id": "dbbdd1f2-4d90-46b9-9239-04e458753aa4",
+          "timestamp": "2025-09-10 21:30:23",
+          "description": "opening drive continuation short to fill the gap",
+          "tags": [
+            "OD-continuation"
+          ],
+          "outcome": "win",
+          "screenshot": {
+            "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trade_1757539821_F.US.ENQU25.2025-09-10_133653.085.png",
+            "caption": "1st trade of day"
+          }
+        }
+      ]
     },
     "trade_log": {
       "analysis": {
@@ -731,6 +745,7 @@
     "last_updated": "2025-09-10 13:27:21"
   },
   "tags": [
+    "OD-continuation",
     "absorption",
     "test"
   ]
