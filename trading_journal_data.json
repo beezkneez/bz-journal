@@ -28,18 +28,7 @@
     ],
     "trade_day": {
       "market_observations": "fdsdsffds",
-      "trades": [
-        {
-          "id": "d415cbf1-9fda-4720-8e7a-9ed8aaa548a5",
-          "timestamp": "2025-09-10 15:00:31",
-          "description": "gfdsdf",
-          "tags": [
-            "test"
-          ],
-          "outcome": "pending",
-          "screenshot": null
-        }
-      ]
+      "trades": []
     }
   },
   "account_settings": {
