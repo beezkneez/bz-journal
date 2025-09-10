@@ -21,8 +21,9 @@
     "trading": {},
     "evening": {},
     "rules": [
-      "Max 3 micro contracts",
-      "Do not give back more than 30% of a day"
+      "Micros only - if add more than 3 - tighten SL",
+      "Do not give back more than 30% of a day",
+      "New rule - click to edit"
     ]
   },
   "account_settings": {
