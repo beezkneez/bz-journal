@@ -25,11 +25,31 @@
       "Do not give back more than 30% of a day",
       "Wait the first 5 minutes",
       "Take a breather between trades - let emotions settle"
-    ]
+    ],
+    "trade_day": {
+      "market_observations": "",
+      "trades": [
+        {
+          "id": "9dc72b0e-b9ca-4730-b257-dc775ea88dea",
+          "timestamp": "2025-09-10 14:44:31",
+          "description": "ES looking weak, plus abosorption on NQ -  NQ hasn't spenyt any time above 5 min openiogn range and its been 75 minutes\n",
+          "tags": [
+            "test",
+            "absorption"
+          ],
+          "outcome": "pending",
+          "screenshot": null
+        }
+      ]
+    }
   },
   "account_settings": {
     "starting_balance": 660.7,
     "start_date": "2025-09-10",
     "last_updated": "2025-09-10 13:27:21"
-  }
+  },
+  "tags": [
+    "absorption",
+    "test"
+  ]
 }
