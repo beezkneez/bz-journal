@@ -1,5 +1,13 @@
 {
-  "transactions": [],
+  "transactions": [
+    {
+      "date": "2025-09-10",
+      "type": "withdrawal",
+      "amount": 100.0,
+      "description": "",
+      "timestamp": "2025-09-10 15:31:08"
+    }
+  ],
   "2025-09-10": {
     "morning": {
       "sleep_quality": 7,
