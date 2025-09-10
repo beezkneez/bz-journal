@@ -16,90 +16,14 @@ import uuid  # NEW: Added for trade IDs
 # Set page config
 st.set_page_config(
     page_title="Trading Journal",
-    page_icon="📊",
+    page_icon="ðŸ“Š",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Initialize theme in session state
-if 'theme' not in st.session_state:
-    st.session_state.theme = "dark"
-
-# Theme selector at the very top
-col1, col2, col3 = st.columns([2, 1, 2])
-with col2:
-    theme_option = st.selectbox(
-        "🎨 Theme",
-        options=["dark", "light"],
-        index=0 if st.session_state.theme == "dark" else 1,
-        key="theme_selector"
-    )
-    
-    if theme_option != st.session_state.theme:
-        st.session_state.theme = theme_option
-        st.rerun()
-
-# Apply theme-specific CSS
-def get_theme_css(theme):
-    if theme == "dark":
-        return """
+# Custom CSS for dark theme - UPDATED WITH NEW TRADE DAY STYLES
+st.markdown("""
 <style>
-    /* DARK THEME - Override Streamlit's core elements */
-    .stApp {
-        background: linear-gradient(180deg, #0e1117 0%, #1a1a2e 100%) !important;
-    }
-    
-    /* Main content background */
-    .main .block-container {
-        background: rgba(14, 17, 23, 0.9) !important;
-        padding-top: 2rem !important;
-    }
-    
-    /* Sidebar styling */
-    .css-1d391kg, .css-1q8dd3e {
-        background: linear-gradient(180deg, #16213e 0%, #0f1419 100%) !important;
-    }
-    
-    /* Override all text colors */
-    .stApp, .stApp * {
-        color: #fafafa !important;
-    }
-    
-    /* Selectbox and input styling */
-    .stSelectbox > div > div {
-        background-color: rgba(255, 255, 255, 0.1) !important;
-        color: #fafafa !important;
-        border: 1px solid #64ffda !important;
-    }
-    
-    .stTextInput > div > div > input,
-    .stTextArea > div > div > textarea,
-    .stNumberInput > div > div > input {
-        background-color: rgba(255, 255, 255, 0.1) !important;
-        color: #fafafa !important;
-        border: 1px solid #64ffda !important;
-    }
-    
-    /* Button styling */
-    .stButton > button {
-        background-color: rgba(100, 255, 218, 0.1) !important;
-        color: #64ffda !important;
-        border: 1px solid #64ffda !important;
-    }
-    
-    .stButton > button:hover {
-        background-color: rgba(100, 255, 218, 0.2) !important;
-        color: #ffffff !important;
-    }
-    
-    /* Metrics styling */
-    .metric-container {
-        background-color: rgba(0, 20, 40, 0.6) !important;
-        border: 1px solid #64ffda !important;
-        border-radius: 10px !important;
-        padding: 1rem !important;
-    }
-    
     .main-header {
         font-size: 3rem;
         font-weight: bold;
@@ -112,7 +36,7 @@ def get_theme_css(theme):
     
     .section-header {
         font-size: 1.5rem;
-        color: #64ffda !important;
+        color: #64ffda;
         border-bottom: 2px solid #64ffda;
         padding-bottom: 0.5rem;
         margin: 1rem 0;
@@ -197,197 +121,7 @@ def get_theme_css(theme):
         color: #ffff00;
     }
 </style>
-"""
-    else:  # light theme
-        return """
-<style>
-    /* LIGHT THEME - Override Streamlit's core elements */
-    .stApp {
-        background: linear-gradient(180deg, #ffffff 0%, #f0f2f6 100%) !important;
-    }
-    
-    /* Main content background */
-    .main .block-container {
-        background: rgba(255, 255, 255, 0.95) !important;
-        padding-top: 2rem !important;
-        border-radius: 10px;
-        box-shadow: 0 0 20px rgba(0,0,0,0.1);
-    }
-    
-    /* Sidebar styling */
-    .css-1d391kg, .css-1q8dd3e {
-        background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%) !important;
-        border-right: 1px solid #dee2e6 !important;
-    }
-    
-    /* Override text colors for light theme */
-    .stApp, .stApp * {
-        color: #212529 !important;
-    }
-    
-    /* Selectbox and input styling */
-    .stSelectbox > div > div {
-        background-color: #ffffff !important;
-        color: #212529 !important;
-        border: 1px solid #1976d2 !important;
-    }
-    
-    .stTextInput > div > div > input,
-    .stTextArea > div > div > textarea,
-    .stNumberInput > div > div > input {
-        background-color: #ffffff !important;
-        color: #212529 !important;
-        border: 1px solid #1976d2 !important;
-    }
-    
-    /* Button styling */
-    .stButton > button {
-        background-color: rgba(25, 118, 210, 0.1) !important;
-        color: #1976d2 !important;
-        border: 1px solid #1976d2 !important;
-    }
-    
-    .stButton > button:hover {
-        background-color: rgba(25, 118, 210, 0.2) !important;
-        color: #0d47a1 !important;
-    }
-    
-    /* Primary button styling */
-    .stButton > button[kind="primary"] {
-        background-color: #1976d2 !important;
-        color: #ffffff !important;
-        border: none !important;
-    }
-    
-    .stButton > button[kind="primary"]:hover {
-        background-color: #0d47a1 !important;
-    }
-    
-    .main-header {
-        font-size: 3rem;
-        font-weight: bold;
-        text-align: center;
-        background: linear-gradient(45deg, #1976d2, #1565c0);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 2rem;
-    }
-    
-    .section-header {
-        font-size: 1.5rem;
-        color: #1976d2 !important;
-        border-bottom: 2px solid #1976d2;
-        padding-bottom: 0.5rem;
-        margin: 1rem 0;
-    }
-    
-    .metric-card {
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid #1976d2;
-        border-radius: 10px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .calendar-day {
-        border: 2px solid #ccc;
-        padding: 10px;
-        height: 80px;
-        margin: 2px;
-        border-radius: 5px;
-        background: rgba(255,255,255,0.9);
-        text-align: center;
-        cursor: pointer;
-        color: #333 !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    
-    .trade-row {
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        padding: 0.5rem;
-        margin: 0.2rem 0;
-        color: #333 !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-    
-    .balance-display {
-        background: rgba(255, 255, 255, 0.95);
-        border: 2px solid #1976d2;
-        border-radius: 10px;
-        padding: 1rem;
-        text-align: center;
-        margin-bottom: 1rem;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    
-    .balance-amount {
-        font-size: 1.8rem;
-        font-weight: bold;
-        color: #1976d2;
-    }
-    
-    .trade-card {
-        background: rgba(255, 255, 255, 0.95);
-        border: 1px solid #1976d2;
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 1rem 0;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-        color: #333 !important;
-    }
-    
-    .tag-chip {
-        display: inline-block;
-        background: rgba(25, 118, 210, 0.1);
-        border: 1px solid #1976d2;
-        border-radius: 15px;
-        padding: 0.2rem 0.8rem;
-        margin: 0.2rem;
-        font-size: 0.8rem;
-        color: #1976d2;
-    }
-    
-    .win-tag {
-        background: rgba(46, 125, 50, 0.1);
-        border-color: #2e7d32;
-        color: #2e7d32;
-    }
-    
-    .loss-tag {
-        background: rgba(211, 47, 47, 0.1);
-        border-color: #d32f2f;
-        color: #d32f2f;
-    }
-    
-    .pending-tag {
-        background: rgba(245, 124, 0, 0.1);
-        border-color: #f57c00;
-        color: #f57c00;
-    }
-    
-    /* Fix sidebar text colors */
-    .css-1d391kg *, .css-1q8dd3e * {
-        color: #212529 !important;
-    }
-    
-    /* Expander styling */
-    .streamlit-expanderHeader {
-        background-color: rgba(255, 255, 255, 0.5) !important;
-        border: 1px solid #dee2e6 !important;
-    }
-    
-    /* Dataframe styling */
-    .stDataFrame {
-        background-color: #ffffff !important;
-    }
-</style>
-"""
-
-# Apply the selected theme CSS
-st.markdown(get_theme_css(st.session_state.theme), unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # GitHub API Configuration
 class GitHubStorage:
@@ -1002,7 +736,7 @@ def calculate_total_withdrawals(data, up_to_date=None):
 if 'current_date' not in st.session_state:
     st.session_state.current_date = date.today()
 if 'page' not in st.session_state:
-    st.session_state.page = "📊 Calendar View"  # STARTS ON CALENDAR!
+    st.session_state.page = "ðŸ“Š Calendar View"  # STARTS ON CALENDAR!
 if 'github_connected' not in st.session_state:
     st.session_state.github_connected = False
 if 'github_storage' not in st.session_state:
@@ -1017,8 +751,7 @@ if 'trade_log_action' not in st.session_state:
     st.session_state.trade_log_action = None
 
 # Main header - UPDATED VERSION TO 7.4
-theme_emoji = "🌙" if st.session_state.theme == "dark" else "☀️"
-st.markdown(f'<h1 class="main-header">{theme_emoji} Trading Journal v7.4</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">ðŸ“Š Trading Journal v7.4</h1>', unsafe_allow_html=True)
 
 # GitHub connection check and auto-setup
 if hasattr(st, 'secrets') and 'github' in st.secrets:
@@ -1042,7 +775,7 @@ else:
     data = load_local_data()
 
 # Account Balance Management in Sidebar
-st.sidebar.title("💰 Account Balance")
+st.sidebar.title("ðŸ’° Account Balance")
 
 # Get account settings
 account_settings = get_account_settings(data)
@@ -1051,7 +784,7 @@ current_balance = 0
 # Account balance setup
 if not account_settings.get('starting_balance') or not account_settings.get('start_date'):
     # Setup required
-    with st.sidebar.expander("⚙️ Setup Account Tracking", expanded=True):
+    with st.sidebar.expander("âš™ï¸ Setup Account Tracking", expanded=True):
         starting_balance = st.number_input(
             "Starting Balance ($)",
             min_value=0.0,
@@ -1066,19 +799,19 @@ if not account_settings.get('starting_balance') or not account_settings.get('sta
             max_value=date.today()
         )
         
-        if st.button("💾 Save Balance Settings", key="save_balance_settings"):
+        if st.button("ðŸ’¾ Save Balance Settings", key="save_balance_settings"):
             data = save_account_settings(data, starting_balance, start_date)
             
             # Save to storage
             if st.session_state.get('github_connected', False):
                 if st.session_state.github_storage.save_journal_entry("account_setup", {}, data):
-                    st.success("✅ Balance settings saved to GitHub!")
+                    st.success("âœ… Balance settings saved to GitHub!")
                 else:
                     save_local_data(data)
-                    st.success("💾 Balance settings saved locally!")
+                    st.success("ðŸ’¾ Balance settings saved locally!")
             else:
                 save_local_data(data)
-                st.success("💾 Balance settings saved locally!")
+                st.success("ðŸ’¾ Balance settings saved locally!")
             
             st.rerun()
 else:
@@ -1092,23 +825,23 @@ else:
     
     # Display balance with styling
     balance_change = current_balance - starting_balance
-    balance_color = "#00ff88" if balance_change > 0 else "#ff4444" if balance_change < 0 else ("#64ffda" if st.session_state.theme == "dark" else "#1976d2")
-    change_symbol = "↗" if balance_change > 0 else "↘" if balance_change < 0 else "→"
+    balance_color = "#00ff88" if balance_change > 0 else "#ff4444" if balance_change < 0 else "#64ffda"
+    change_symbol = "â†—" if balance_change > 0 else "â†˜" if balance_change < 0 else "â†’"
     
     st.sidebar.markdown(f"""
     <div class="balance-display">
-        <div style="font-size: 1rem; color: {"#aaa" if st.session_state.theme == "dark" else "#666"};">Current Balance</div>
+        <div style="font-size: 1rem; color: #aaa;">Current Balance</div>
         <div class="balance-amount" style="color: {balance_color};">
             ${current_balance:,.2f} {change_symbol}
         </div>
-        <div style="font-size: 0.9rem; color: {"#aaa" if st.session_state.theme == "dark" else "#666"};">
+        <div style="font-size: 0.9rem; color: #aaa;">
             {change_symbol} ${abs(balance_change):,.2f} from start
         </div>
     </div>
     """, unsafe_allow_html=True)
     
     # Balance management
-    with st.sidebar.expander("⚙️ Manage Balance"):
+    with st.sidebar.expander("âš™ï¸ Manage Balance"):
         st.write(f"**Start Date:** {start_date_str}")
         st.write(f"**Starting Balance:** ${starting_balance:,.2f}")
         
@@ -1136,7 +869,7 @@ else:
         
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("💾 Update", key="update_balance"):
+            if st.button("ðŸ’¾ Update", key="update_balance"):
                 data = save_account_settings(data, new_starting_balance, new_start_date)
                 
                 # Save to storage
@@ -1147,7 +880,7 @@ else:
                 st.rerun()
         
         with col2:
-            if st.button("🗑️ Reset", key="reset_balance"):
+            if st.button("ðŸ—‘ï¸ Reset", key="reset_balance"):
                 if 'account_settings' in data:
                     del data['account_settings']
                 
@@ -1158,9 +891,20 @@ else:
                 st.success("Reset!")
                 st.rerun()
 
+# Sidebar GitHub status
+# st.sidebar.title("â˜ï¸ Cloud Storage")
+# if st.session_state.get('github_connected', False):
+  #   st.sidebar.success("âœ… Connected to GitHub")
+  #   repo_url = f"https://github.com/{st.session_state.repo_owner}/{st.session_state.repo_name}"
+   #  st.sidebar.markdown(f"ðŸ”— [View Repository]({repo_url})")
+   #  screenshots_url = f"{repo_url}/tree/main/screenshots"
+   #  st.sidebar.markdown(f"ðŸ“¸ [View Screenshots]({screenshots_url})")
+# else:
+  #   st.sidebar.warning("âš ï¸ GitHub not connected")
+
 # MOVED: Date selector - Now ABOVE navigation menu
 st.sidebar.markdown("---")
-st.sidebar.title("📅 Date Selection")
+st.sidebar.title("ðŸ“… Date Selection")
 selected_date = st.sidebar.date_input(
     "Select Date",
     value=st.session_state.current_date,
@@ -1173,38 +917,38 @@ if selected_date != st.session_state.current_date:
 
 # UPDATED SIDEBAR NAVIGATION - ADDED TRADE DAY AND TAG MANAGEMENT
 st.sidebar.markdown("---")
-st.sidebar.title("📋 Navigation")
+st.sidebar.title("ðŸ“‹ Navigation")
 
 # Navigation buttons - CALENDAR VIEW FIRST, THEN TRADE DAY!
-if st.sidebar.button("📊 Calendar View", key="nav_calendar", use_container_width=True):
-    st.session_state.page = "📊 Calendar View"
+if st.sidebar.button("ðŸ“Š Calendar View", key="nav_calendar", use_container_width=True):
+    st.session_state.page = "ðŸ“Š Calendar View"
 
-if st.sidebar.button("🌅 Morning Prep", key="nav_morning", use_container_width=True):
-    st.session_state.page = "🌅 Morning Prep"
+if st.sidebar.button("ðŸŒ… Morning Prep", key="nav_morning", use_container_width=True):
+    st.session_state.page = "ðŸŒ… Morning Prep"
 
 # NEW: TRADE DAY NAVIGATION BUTTON
-if st.sidebar.button("📈 Trade Day", key="nav_trade_day", use_container_width=True):
-    st.session_state.page = "📈 Trade Day"
+if st.sidebar.button("ðŸ“ˆ Trade Day", key="nav_trade_day", use_container_width=True):
+    st.session_state.page = "ðŸ“ˆ Trade Day"
 
-if st.sidebar.button("📈 Trading Review", key="nav_trading", use_container_width=True):
-    st.session_state.page = "📈 Trading Review"
+if st.sidebar.button("ðŸ“ˆ Trading Review", key="nav_trading", use_container_width=True):
+    st.session_state.page = "ðŸ“ˆ Trading Review"
 
-if st.sidebar.button("🌙 Evening Recap", key="nav_evening", use_container_width=True):
-    st.session_state.page = "🌙 Evening Recap"
+if st.sidebar.button("ðŸŒ™ Evening Recap", key="nav_evening", use_container_width=True):
+    st.session_state.page = "ðŸŒ™ Evening Recap"
 
-if st.sidebar.button("📊 Trade Log Analysis", key="nav_tradelog", use_container_width=True):
-    st.session_state.page = "📊 Trade Log Analysis"
+if st.sidebar.button("ðŸ“Š Trade Log Analysis", key="nav_tradelog", use_container_width=True):
+    st.session_state.page = "ðŸ“Š Trade Log Analysis"
 
-if st.sidebar.button("📚 Historical Analysis", key="nav_history", use_container_width=True):
-    st.session_state.page = "📚 Historical Analysis"
+if st.sidebar.button("ðŸ“š Historical Analysis", key="nav_history", use_container_width=True):
+    st.session_state.page = "ðŸ“š Historical Analysis"
 
 # Enhanced Balance History Page
-if st.sidebar.button("💰 Balance & Ledger", key="nav_balance_history", use_container_width=True):
-    st.session_state.page = "💰 Balance & Ledger"
+if st.sidebar.button("ðŸ’° Balance & Ledger", key="nav_balance_history", use_container_width=True):
+    st.session_state.page = "ðŸ’° Balance & Ledger"
 
 # NEW: Tag Management Button
-if st.sidebar.button("🏷️ Tag Management", key="nav_tag_management", use_container_width=True):
-    st.session_state.page = "🏷️ Tag Management"
+if st.sidebar.button("ðŸ·ï¸ Tag Management", key="nav_tag_management", use_container_width=True):
+    st.session_state.page = "ðŸ·ï¸ Tag Management"
 
 page = st.session_state.page
 
@@ -1222,12 +966,321 @@ if date_key not in data:
 
 current_entry = data[date_key]
 
-# Note: Rest of the code remains the same as the original v7.4, just with theme-aware styling...
-# (I'll include a key section to show the structure, but the full code would be too long for this response)
+# Enhanced Balance History Page with Transaction Ledger
+if page == "ðŸ’° Balance & Ledger":
+    st.markdown('<div class="section-header">ðŸ’° Account Balance & Transaction Ledger</div>', unsafe_allow_html=True)
+    
+    account_settings = get_account_settings(data)
+    
+    if not account_settings.get('starting_balance') or not account_settings.get('start_date'):
+        st.warning("âš ï¸ Please set up your account balance tracking in the sidebar first.")
+        st.info("Go to the sidebar and expand 'âš™ï¸ Setup Account Tracking' to get started.")
+    else:
+        starting_balance = account_settings['starting_balance']
+        start_date_str = account_settings['start_date']
+        start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        
+        # Add Transaction Ledger at the top
+        st.subheader("ðŸ’³ Transaction Ledger")
+        
+        # Quick add transaction form
+        col1, col2, col3, col4, col5 = st.columns([1.5, 1, 1, 2, 1])
+        
+        with col1:
+            ledger_transaction_type = st.selectbox(
+                "Type",
+                ["deposit", "withdrawal"],
+                format_func=lambda x: "ðŸ’° Deposit" if x == "deposit" else "ðŸ’¸ Withdrawal",
+                key="ledger_type"
+            )
+        
+        with col2:
+            ledger_transaction_amount = st.number_input(
+                "Amount ($)",
+                min_value=0.01,
+                step=50.0,
+                format="%.2f",
+                key="ledger_amount"
+            )
+        
+        with col3:
+            ledger_transaction_date = st.date_input(
+                "Date",
+                value=date.today(),
+                max_value=date.today(),
+                key="ledger_date"
+            )
+        
+        with col4:
+            ledger_transaction_description = st.text_input(
+                "Description",
+                placeholder="e.g., Monthly deposit, Profit withdrawal...",
+                key="ledger_description"
+            )
+        
+        with col5:
+            st.markdown("<br>", unsafe_allow_html=True)  # Add space for alignment
+            if st.button("ðŸ’¾ Add", type="primary", key="ledger_add"):
+                if ledger_transaction_amount > 0:
+                    data = add_transaction(data, ledger_transaction_date, ledger_transaction_type, ledger_transaction_amount, ledger_transaction_description)
+                    
+                    # Save to storage
+                    if st.session_state.get('github_connected', False):
+                        st.session_state.github_storage.save_journal_entry("transactions", {}, data)
+                    save_local_data(data)
+                    
+                    transaction_verb = "deposited" if ledger_transaction_type == "deposit" else "withdrawn"
+                    st.success(f"${ledger_transaction_amount:.2f} {transaction_verb}! Balance updated.")
+                    st.rerun()
+                else:
+                    st.error("Amount must be greater than 0")
+        
+        # Recent transactions summary
+        all_transactions = get_all_transactions(data)
+        if all_transactions:
+            st.markdown("---")
+            st.subheader("ðŸ“‹ Recent Transactions")
+            
+            # Show last 5 transactions
+            recent_transactions = list(reversed(all_transactions[-5:]))
+            
+            for transaction in recent_transactions:
+                type_icon = "ðŸ’°" if transaction['type'] == 'deposit' else "ðŸ’¸"
+                type_color = "green" if transaction['type'] == 'deposit' else "red"
+                amount_display = f"+${transaction['amount']:,.2f}" if transaction['type'] == 'deposit' else f"-${transaction['amount']:,.2f}"
+                desc = f" - {transaction['description']}" if transaction.get('description') else ""
+                
+                st.markdown(f"""
+                <div style="background: rgba(0,20,40,0.3); padding: 0.5rem; margin: 0.2rem 0; border-radius: 5px; border-left: 3px solid {type_color};">
+                    <strong>{transaction['date']}</strong> | {type_icon} <span style="color: {type_color};">{amount_display}</span>{desc}
+                </div>
+                """, unsafe_allow_html=True)
+            
+            if len(all_transactions) > 5:
+                st.info(f"Showing 5 most recent transactions. Total: {len(all_transactions)} transactions.")
+        
+        st.markdown("---")
+        
+        # Date range for analysis
+        st.subheader("ðŸ“Š Balance History Analysis")
+        col1, col2 = st.columns(2)
+        with col1:
+            analysis_start = st.date_input(
+                "Start Date",
+                value=start_date_obj,
+                min_value=start_date_obj,
+                max_value=date.today()
+            )
+        with col2:
+            analysis_end = st.date_input(
+                "End Date",
+                value=date.today(),
+                min_value=start_date_obj,
+                max_value=date.today()
+            )
+        
+        # Calculate daily balances including transactions
+        balance_data = []
+        current_date = analysis_start
+        running_balance = calculate_running_balance(data, analysis_start, starting_balance, start_date_obj)
+        
+        while current_date <= analysis_end:
+            date_key = get_date_key(current_date)
+            daily_pnl = 0
+            daily_deposits = 0
+            daily_withdrawals = 0
+            
+            # Get trading P&L
+            if date_key in data and 'trading' in data[date_key]:
+                daily_pnl = data[date_key]['trading'].get('pnl', 0)
+            
+            # Get transactions for this date
+            day_transactions = get_transactions_for_date(data, current_date)
+            for transaction in day_transactions:
+                if transaction['type'] == 'deposit':
+                    daily_deposits += transaction['amount']
+                else:
+                    daily_withdrawals += transaction['amount']
+            
+            balance_data.append({
+                'date': current_date,
+                'date_str': current_date.strftime("%Y-%m-%d"),
+                'balance': running_balance,
+                'daily_pnl': daily_pnl,
+                'daily_deposits': daily_deposits,
+                'daily_withdrawals': daily_withdrawals,
+                'net_transactions': daily_deposits - daily_withdrawals,
+                'cumulative_pnl': running_balance - starting_balance - calculate_total_deposits(data, current_date) + calculate_total_withdrawals(data, current_date)
+            })
+            
+            # Update running balance for next day
+            running_balance += daily_pnl + daily_deposits - daily_withdrawals
+            current_date += timedelta(days=1)
+        
+        # Display summary metrics
+        if balance_data:
+            latest_balance = balance_data[-1]['balance']
+            total_deposits = calculate_total_deposits(data, analysis_end)
+            total_withdrawals = calculate_total_withdrawals(data, analysis_end)
+            total_pnl = latest_balance - starting_balance - total_deposits + total_withdrawals
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Current Balance", f"${latest_balance:,.2f}")
+            with col2:
+                st.metric("Trading P&L", f"${total_pnl:,.2f}", delta=f"{(total_pnl/starting_balance)*100:.2f}%")
+            with col3:
+                st.metric("Total Deposits", f"${total_deposits:,.2f}")
+            with col4:
+                st.metric("Total Withdrawals", f"${total_withdrawals:,.2f}")
+            
+            # Enhanced balance chart with transactions
+            fig = go.Figure()
+            
+            # Balance line
+            fig.add_trace(go.Scatter(
+                x=[d['date'] for d in balance_data],
+                y=[d['balance'] for d in balance_data],
+                mode='lines+markers',
+                name='Account Balance',
+                line=dict(color='#64ffda', width=3),
+                marker=dict(size=4),
+                hovertemplate='<b>%{x}</b><br>Balance: $%{y:,.2f}<extra></extra>'
+            ))
+            
+            # Add deposit markers
+            deposit_dates = [d['date'] for d in balance_data if d['daily_deposits'] > 0]
+            deposit_balances = [d['balance'] for d in balance_data if d['daily_deposits'] > 0]
+            deposit_amounts = [d['daily_deposits'] for d in balance_data if d['daily_deposits'] > 0]
+            
+            if deposit_dates:
+                fig.add_trace(go.Scatter(
+                    x=deposit_dates,
+                    y=deposit_balances,
+                    mode='markers',
+                    name='ðŸ’° Deposits',
+                    marker=dict(color='green', size=8, symbol='triangle-up'),
+                    hovertemplate='<b>%{x}</b><br>Deposit: $%{text}<br>Balance: $%{y:,.2f}<extra></extra>',
+                    text=[f"{amt:,.2f}" for amt in deposit_amounts]
+                ))
+            
+            # Add withdrawal markers
+            withdrawal_dates = [d['date'] for d in balance_data if d['daily_withdrawals'] > 0]
+            withdrawal_balances = [d['balance'] for d in balance_data if d['daily_withdrawals'] > 0]
+            withdrawal_amounts = [d['daily_withdrawals'] for d in balance_data if d['daily_withdrawals'] > 0]
+            
+            if withdrawal_dates:
+                fig.add_trace(go.Scatter(
+                    x=withdrawal_dates,
+                    y=withdrawal_balances,
+                    mode='markers',
+                    name='ðŸ’¸ Withdrawals',
+                    marker=dict(color='red', size=8, symbol='triangle-down'),
+                    hovertemplate='<b>%{x}</b><br>Withdrawal: $%{text}<br>Balance: $%{y:,.2f}<extra></extra>',
+                    text=[f"{amt:,.2f}" for amt in withdrawal_amounts]
+                ))
+            
+            # Starting balance reference line
+            fig.add_hline(
+                y=starting_balance,
+                line_dash="dash",
+                line_color="gray",
+                annotation_text=f"Starting Balance: ${starting_balance:,.2f}"
+            )
+            
+            fig.update_layout(
+                title="Account Balance Over Time (with Transactions)",
+                xaxis_title="Date",
+                yaxis_title="Balance ($)",
+                template="plotly_dark",
+                height=500
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Transaction management section
+            if all_transactions:
+                st.markdown("---")
+                st.subheader("ðŸ› ï¸ Manage All Transactions")
+                
+                # Create DataFrame for display
+                df_transactions = []
+                for i, transaction in enumerate(reversed(all_transactions)):
+                    df_transactions.append({
+                        'Date': transaction['date'],
+                        'Type': "ðŸ’° Deposit" if transaction['type'] == 'deposit' else "ðŸ’¸ Withdrawal",
+                        'Amount': f"${transaction['amount']:,.2f}",
+                        'Description': transaction.get('description', ''),
+                        'Index': len(all_transactions) - 1 - i
+                    })
+                
+                # Display transaction table
+                st.dataframe(
+                    pd.DataFrame(df_transactions)[['Date', 'Type', 'Amount', 'Description']], 
+                    use_container_width=True, 
+                    hide_index=True
+                )
+                
+                # Delete transaction functionality
+                with st.expander("ðŸ—‘ï¸ Delete Transaction"):
+                    transaction_options = []
+                    for i, transaction in enumerate(all_transactions):
+                        type_icon = "ðŸ’°" if transaction['type'] == 'deposit' else "ðŸ’¸"
+                        desc = f" - {transaction['description']}" if transaction.get('description') else ""
+                        option = f"{transaction['date']} | {type_icon} ${transaction['amount']:,.2f}{desc}"
+                        transaction_options.append(option)
+                    
+                    if transaction_options:
+                        selected_transaction = st.selectbox(
+                            "Select transaction to delete:",
+                            range(len(transaction_options)),
+                            format_func=lambda x: transaction_options[x]
+                        )
+                        
+                        col1, col2 = st.columns([1, 3])
+                        with col1:
+                            if st.button("ðŸ—‘ï¸ Delete Selected", key="delete_transaction_balance"):
+                                data = delete_transaction(data, selected_transaction)
+                                
+                                # Save to storage
+                                if st.session_state.get('github_connected', False):
+                                    st.session_state.github_storage.save_journal_entry("transactions", {}, data)
+                                save_local_data(data)
+                                
+                                st.success("Transaction deleted! Balance will update.")
+                                st.rerun()
+                        
+                        with col2:
+                            st.warning("âš ï¸ Deleting a transaction will affect your balance calculations.")
+                
+                # Export functionality
+                st.markdown("---")
+                if st.button("ðŸ“¤ Export Complete Ledger as CSV"):
+                    # Create comprehensive export with balance data
+                    export_data = []
+                    for day in balance_data:
+                        export_data.append({
+                            'Date': day['date_str'],
+                            'Balance': day['balance'],
+                            'Trading_PnL': day['daily_pnl'],
+                            'Deposits': day['daily_deposits'],
+                            'Withdrawals': day['daily_withdrawals'],
+                            'Net_Transactions': day['net_transactions']
+                        })
+                    
+                    df_export = pd.DataFrame(export_data)
+                    csv = df_export.to_csv(index=False)
+                    st.download_button(
+                        label="Download Balance Ledger CSV",
+                        data=csv,
+                        file_name=f"balance_ledger_{date.today().strftime('%Y%m%d')}.csv",
+                        mime="text/csv"
+                    )
 
-# ======== CALENDAR VIEW PAGE EXAMPLE ========
-if page == "📊 Calendar View":
-    st.markdown('<div class="section-header">📊 Monthly Calendar</div>', unsafe_allow_html=True)
+# ======== CALENDAR VIEW PAGE ========
+elif page == "ðŸ“Š Calendar View":
+    st.markdown('<div class="section-header">ðŸ“Š Monthly Calendar</div>', unsafe_allow_html=True)
     
     # Month selector
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -1263,7 +1316,7 @@ if page == "📊 Calendar View":
             if day == 0:
                 # Empty day - same height as others
                 week_cols[i].markdown(
-                    '<div class="calendar-day" style="padding: 10px; height: 80px; opacity: 0.3; display: flex; align-items: center; justify-content: center;">&nbsp;</div>', 
+                    '<div style="border: 2px solid #333; padding: 10px; height: 80px; background: rgba(0,0,0,0.2); border-radius: 5px;">&nbsp;</div>', 
                     unsafe_allow_html=True
                 )
             else:
@@ -1280,18 +1333,17 @@ if page == "📊 Calendar View":
                     rule_compliance = entry.get('trading', {}).get('rule_compliance', {})
                     if rule_compliance:
                         compliance_rate = sum(rule_compliance.values()) / len(rule_compliance)
-                        compliance_color = "🟢" if compliance_rate >= 0.8 else "🔴"
+                        compliance_color = "ðŸŸ¢" if compliance_rate >= 0.8 else "ðŸ”´"
                     else:
-                        compliance_color = "⚪"
+                        compliance_color = "âšª"
                     
                     # Display day with P&L and compliance - clickable with same height
                     pnl_color = "green" if pnl > 0 else "red" if pnl < 0 else "gray"
-                    bg_color = "rgba(0,20,40,0.3)" if st.session_state.theme == "dark" else "rgba(255,255,255,0.9)"
                     
                     # Create clickable day button with fixed height
                     button_key = f"cal_day_{day_key}"
                     week_cols[i].markdown(f'''
-                    <div style="border: 2px solid #333; padding: 10px; height: 80px; background: {bg_color}; 
+                    <div style="border: 2px solid #333; padding: 10px; height: 80px; background: rgba(0,20,40,0.3); 
                                 border-radius: 5px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
                         <strong>{day} {compliance_color}</strong><br>
                         <span style="color: {pnl_color};">${pnl:.2f}</span>
@@ -1300,15 +1352,13 @@ if page == "📊 Calendar View":
                     
                     if week_cols[i].button("View", key=button_key, help=f"Click to view {day_date.strftime('%B %d, %Y')}"):
                         st.session_state.current_date = day_date
-                        st.session_state.page = "📈 Trading Review"
+                        st.session_state.page = "ðŸ“ˆ Trading Review"
                         st.rerun()
                 else:
                     # Empty day - still clickable with same height
                     empty_button_key = f"cal_empty_{day}_{first_day.month}_{first_day.year}"
-                    bg_color = "rgba(0,0,0,0.2)" if st.session_state.theme == "dark" else "rgba(240,240,240,0.5)"
-                    
                     week_cols[i].markdown(f'''
-                    <div style="border: 2px solid #333; padding: 10px; height: 80px; background: {bg_color}; 
+                    <div style="border: 2px solid #333; padding: 10px; height: 80px; background: rgba(0,0,0,0.2); 
                                 border-radius: 5px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
                         <strong>{day}</strong><br>
                         <span style="color: gray;">---</span>
@@ -1317,7 +1367,7 @@ if page == "📊 Calendar View":
                     
                     if week_cols[i].button("Add", key=empty_button_key, help=f"Click to add entry for {day_date.strftime('%B %d, %Y')}"):
                         st.session_state.current_date = day_date
-                        st.session_state.page = "📈 Trading Review"
+                        st.session_state.page = "ðŸ“ˆ Trading Review"
                         st.rerun()
         
         # Weekly total column - SAME HEIGHT as calendar days
@@ -1336,29 +1386,1870 @@ if page == "📊 Calendar View":
     st.markdown("**Legend:**")
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.markdown("🟢 Good Process (80%+ rule compliance)")
+        st.markdown("ðŸŸ¢ Good Process (80%+ rule compliance)")
     with col2:
-        st.markdown("🔴 Poor Process (<80% rule compliance)")
+        st.markdown("ðŸ”´ Poor Process (<80% rule compliance)")
     with col3:
-        st.markdown("⚪ No trading data")
+        st.markdown("âšª No trading data")
     with col4:
-        st.markdown("💡 **Click View/Add to edit entries**")
+        st.markdown("ðŸ’¡ **Click View/Add to edit entries**")
 
-# The rest of the pages would follow the same pattern with theme-aware styling...
-# This includes all other pages: Morning Prep, Trade Day, Trading Review, Evening Recap, 
-# Trade Log Analysis, Historical Analysis, Balance & Ledger, and Tag Management
+# ======== NEW TRADE DAY PAGE ========
+elif page == "ðŸ“ˆ Trade Day":
+    st.markdown('<div class="section-header">ðŸ“ˆ Live Trade Day</div>', unsafe_allow_html=True)
+    
+    # Show current date and delete option
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown(f"### ðŸ“… {selected_date.strftime('%A, %B %d, %Y')}")
+    with col2:
+        if st.button("ðŸ—‘ï¸ Delete Entry", key="delete_trade_day", help="Delete all trade day data for this date"):
+            if 'trade_day' in current_entry:
+                del current_entry['trade_day']
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+                save_local_data(data)
+                st.success("Trade day entry deleted!")
+                st.rerun()
+    
+    # Initialize trade_day if doesn't exist
+    if 'trade_day' not in current_entry:
+        current_entry['trade_day'] = {'market_observations': '', 'trades': []}
+    
+    # Market Observations Section
+    st.subheader("ðŸ” Market Observations")
+    market_observations = st.text_area(
+        "What do you see in the markets today?",
+        value=current_entry['trade_day'].get('market_observations', ''),
+        height=150,
+        placeholder="Market conditions, trends, key levels, news impact, volume patterns, sector rotation, etc.",
+        key="market_observations"
+    )
+    
+    # Save market observations
+    if st.button("ðŸ’¾ Save Market Observations", key="save_observations"):
+        current_entry['trade_day']['market_observations'] = market_observations
+        
+        if st.session_state.get('github_connected', False):
+            if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                st.success("âœ… Market observations saved!")
+        else:
+            save_local_data(data)
+            st.success("ðŸ’¾ Market observations saved!")
+    
+    st.markdown("---")
+    
+    # Add New Trade Section
+    st.subheader("âž• Add New Trade")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Trade description
+        trade_description = st.text_area(
+            "Trade Description",
+            placeholder="Describe your trade setup, entry reasoning, target, stop loss, etc.",
+            height=100,
+            key="new_trade_description"
+        )
+        
+        # Screenshot upload for trade
+        trade_screenshot = st.file_uploader(
+            "Trade Screenshot",
+            type=['png', 'jpg', 'jpeg'],
+            help="Upload entry chart, setup screenshot, or other relevant image",
+            key="new_trade_screenshot"
+        )
+        
+        screenshot_caption = ""
+        if trade_screenshot:
+            screenshot_caption = st.text_input(
+                "Screenshot Caption",
+                placeholder="Describe this screenshot...",
+                key="new_trade_screenshot_caption"
+            )
+    
+    with col2:
+        # Tags section
+        st.markdown("**Tags:**")
+        
+        # Get existing tags
+        all_tags = get_all_tags(data)
+        
+        # Multi-select for existing tags
+        selected_tags = st.multiselect(
+            "Select existing tags",
+            options=all_tags,
+            key="trade_tags_select"
+        )
+        
+        # Add new tags
+        new_tags_input = st.text_input(
+            "Add new tags (comma-separated)",
+            placeholder="scalp, breakout, TSLA",
+            key="new_tags_input"
+        )
+        
+        # Parse new tags
+        new_tags = []
+        if new_tags_input.strip():
+            new_tags = [tag.strip() for tag in new_tags_input.split(',') if tag.strip()]
+            
+        # Combine all tags
+        all_trade_tags = selected_tags + new_tags
+        
+        # Trade outcome
+        trade_outcome = st.selectbox(
+            "Trade Outcome",
+            options=["pending", "win", "loss"],
+            format_func=lambda x: {
+                "pending": "â³ Pending", 
+                "win": "âœ… Win", 
+                "loss": "âŒ Loss"
+            }[x],
+            key="trade_outcome"
+        )
+    
+    # Add trade button
+    if st.button("ðŸš€ Add Trade", type="primary", key="add_trade"):
+        if not trade_description.strip():
+            st.warning("âš ï¸ Please add a trade description!")
+        else:
+            # Handle screenshot upload
+            screenshot_data = None
+            if trade_screenshot and screenshot_caption.strip():
+                if st.session_state.get('github_connected', False):
+                    # Upload to GitHub
+                    file_data = trade_screenshot.getvalue()
+                    timestamp = int(datetime.now().timestamp())
+                    filename = f"trade_{timestamp}_{trade_screenshot.name}"
+                    screenshot_url = st.session_state.github_storage.upload_screenshot(
+                        file_data, filename, date_key
+                    )
+                    if screenshot_url:
+                        screenshot_data = {'url': screenshot_url, 'caption': screenshot_caption}
+                else:
+                    # Save locally
+                    screenshot_path = save_uploaded_file_local(trade_screenshot, date_key, "trade")
+                    if screenshot_path:
+                        screenshot_data = {'url': screenshot_path, 'caption': screenshot_caption}
+            
+            # Add new tags to system
+            for tag in new_tags:
+                data = add_tag_to_system(data, tag)
+            
+            # Create trade
+            new_trade = create_new_trade(
+                trade_description, 
+                all_trade_tags, 
+                trade_outcome, 
+                screenshot_data
+            )
+            
+            # Add trade to current entry
+            if 'trades' not in current_entry['trade_day']:
+                current_entry['trade_day']['trades'] = []
+            
+            current_entry['trade_day']['trades'].append(new_trade)
+            current_entry['trade_day']['market_observations'] = market_observations
+            
+            # Save
+            if st.session_state.get('github_connected', False):
+                if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                    st.success("âœ… Trade added and saved to GitHub!")
+                else:
+                    save_local_data(data)
+                    st.success("ðŸ’¾ Trade added and saved locally!")
+            else:
+                save_local_data(data)
+                st.success("ðŸ’¾ Trade added and saved locally!")
+            
+            # Clear the form by rerunning
+            st.rerun()
+    
+    st.markdown("---")
+    
+    # Display Existing Trades for Today
+    existing_trades = current_entry['trade_day'].get('trades', [])
+    
+    if existing_trades:
+        st.subheader(f"ðŸ“‹ Today's Trades ({len(existing_trades)})")
+        
+        for i, trade in enumerate(existing_trades):
+            with st.expander(f"Trade {i+1}: {trade['description'][:50]}..." if len(trade['description']) > 50 else f"Trade {i+1}: {trade['description']}"):
+                
+                # Check if this trade is being edited
+                edit_key = f"edit_trade_{trade['id']}"
+                is_editing = st.session_state.get(edit_key, False)
+                
+                if not is_editing:
+                    # Display mode
+                    col1, col2 = st.columns([3, 1])
+                    
+                    with col1:
+                        st.markdown(f"**Time:** {trade['timestamp']}")
+                        st.markdown(f"**Description:** {trade['description']}")
+                        
+                        # Display tags
+                        if trade.get('tags'):
+                            tags_html = ""
+                            for tag in trade['tags']:
+                                tags_html += f'<span class="tag-chip">{tag}</span>'
+                            st.markdown(f"**Tags:** {tags_html}", unsafe_allow_html=True)
+                        else:
+                            st.markdown("**Tags:** None")
+                        
+                        # Display outcome with styling
+                        outcome = trade.get('outcome', 'pending')
+                        outcome_colors = {
+                            'win': ('#00ff00', 'âœ…'),
+                            'loss': ('#ff0000', 'âŒ'), 
+                            'pending': ('#ffff00', 'â³')
+                        }
+                        color, icon = outcome_colors.get(outcome, ('#ffffff', 'â“'))
+                        st.markdown(f"**Outcome:** <span style='color: {color}; font-weight: bold;'>{icon} {outcome.upper()}</span>", unsafe_allow_html=True)
+                        
+                        # Display screenshot if exists
+                        if trade.get('screenshot'):
+                            st.markdown(f"**Screenshot:** {trade['screenshot']['caption']}")
+                            display_image_full_size(trade['screenshot']['url'], trade['screenshot']['caption'])
+                    
+                    with col2:
+                        # Edit button
+                        if st.button(f"âœï¸ Edit", key=f"start_edit_{trade['id']}"):
+                            st.session_state[edit_key] = True
+                            st.rerun()
+                        
+                        # Quick outcome update (kept for convenience)
+                        new_outcome = st.selectbox(
+                            "Quick Update Outcome",
+                            options=["pending", "win", "loss"],
+                            index=["pending", "win", "loss"].index(outcome),
+                            format_func=lambda x: {"pending": "â³ Pending", "win": "âœ… Win", "loss": "âŒ Loss"}[x],
+                            key=f"outcome_update_{trade['id']}"
+                        )
+                        
+                        if new_outcome != outcome:
+                            if st.button(f"ðŸ’¾ Update", key=f"update_outcome_{trade['id']}"):
+                                trade['outcome'] = new_outcome
+                                
+                                # Save updated trade
+                                if st.session_state.get('github_connected', False):
+                                    st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+                                save_local_data(data)
+                                st.success("Trade outcome updated!")
+                                st.rerun()
+                        
+                        # Delete trade button
+                        if st.button(f"ðŸ—‘ï¸ Delete", key=f"delete_trade_{trade['id']}"):
+                            current_entry['trade_day']['trades'].pop(i)
+                            
+                            if st.session_state.get('github_connected', False):
+                                st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+                            save_local_data(data)
+                            st.success("Trade deleted!")
+                            st.rerun()
+                
+                else:
+                    # Edit mode
+                    st.markdown("### âœï¸ **Edit Trade**")
+                    
+                    with st.form(key=f"edit_trade_form_{trade['id']}"):
+                        col1, col2 = st.columns([2, 1])
+                        
+                        with col1:
+                            # Editable description
+                            edit_description = st.text_area(
+                                "Trade Description",
+                                value=trade.get('description', ''),
+                                height=100,
+                                key=f"edit_desc_{trade['id']}"
+                            )
+                            
+                            # Screenshot caption editing (if screenshot exists)
+                            edit_screenshot_caption = ""
+                            if trade.get('screenshot'):
+                                edit_screenshot_caption = st.text_input(
+                                    "Screenshot Caption",
+                                    value=trade['screenshot'].get('caption', ''),
+                                    key=f"edit_caption_{trade['id']}"
+                                )
+                                
+                                # Show current screenshot
+                                st.markdown("**Current Screenshot:**")
+                                display_image_full_size(trade['screenshot']['url'], trade['screenshot']['caption'])
+                        
+                        with col2:
+                            # Get current tags for editing
+                            current_tags = trade.get('tags', [])
+                            all_tags = get_all_tags(data)
+                            
+                            # Multi-select for existing tags (pre-select current tags)
+                            edit_selected_tags = st.multiselect(
+                                "Select existing tags",
+                                options=all_tags,
+                                default=current_tags,
+                                key=f"edit_tags_select_{trade['id']}"
+                            )
+                            
+                            # Add new tags
+                            edit_new_tags_input = st.text_input(
+                                "Add new tags (comma-separated)",
+                                placeholder="scalp, breakout, TSLA",
+                                key=f"edit_new_tags_{trade['id']}"
+                            )
+                            
+                            # Parse new tags
+                            edit_new_tags = []
+                            if edit_new_tags_input.strip():
+                                edit_new_tags = [tag.strip() for tag in edit_new_tags_input.split(',') if tag.strip()]
+                            
+                            # Combine all tags
+                            edit_all_trade_tags = edit_selected_tags + edit_new_tags
+                            
+                            # Trade outcome
+                            edit_trade_outcome = st.selectbox(
+                                "Trade Outcome",
+                                options=["pending", "win", "loss"],
+                                index=["pending", "win", "loss"].index(trade.get('outcome', 'pending')),
+                                format_func=lambda x: {
+                                    "pending": "â³ Pending", 
+                                    "win": "âœ… Win", 
+                                    "loss": "âŒ Loss"
+                                }[x],
+                                key=f"edit_outcome_{trade['id']}"
+                            )
+                        
+                        # Form buttons
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            save_changes = st.form_submit_button("ðŸ’¾ Save Changes", type="primary")
+                        with col2:
+                            cancel_edit = st.form_submit_button("âŒ Cancel")
+                        
+                        if save_changes:
+                            if not edit_description.strip():
+                                st.error("âš ï¸ Trade description cannot be empty!")
+                            else:
+                                # Add new tags to system
+                                for tag in edit_new_tags:
+                                    data = add_tag_to_system(data, tag)
+                                
+                                # Update the trade
+                                trade['description'] = edit_description
+                                trade['tags'] = edit_all_trade_tags
+                                trade['outcome'] = edit_trade_outcome
+                                
+                                # Update screenshot caption if it exists
+                                if trade.get('screenshot') and edit_screenshot_caption.strip():
+                                    trade['screenshot']['caption'] = edit_screenshot_caption
+                                
+                                # Save changes
+                                try:
+                                    if st.session_state.get('github_connected', False):
+                                        if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                                            st.success("âœ… Trade updated and saved to GitHub!")
+                                        else:
+                                            save_local_data(data)
+                                            st.success("ðŸ’¾ Trade updated and saved locally!")
+                                    else:
+                                        save_local_data(data)
+                                        st.success("ðŸ’¾ Trade updated and saved locally!")
+                                    
+                                    # Exit edit mode
+                                    st.session_state[edit_key] = False
+                                    st.rerun()
+                                    
+                                except Exception as e:
+                                    st.error(f"âŒ Error saving changes: {str(e)}")
+                                    save_local_data(data)
+                                    st.warning("âš ï¸ Saved to local backup")
+                        
+                        if cancel_edit:
+                            # Exit edit mode without saving
+                            st.session_state[edit_key] = False
+                            st.rerun()
+    else:
+        st.info("No trades recorded for today. Add your first trade above!")
 
-# Sidebar stats remain the same but with theme-aware colors in the CSS
+# ======== NEW TAG MANAGEMENT PAGE ========
+elif page == "ðŸ·ï¸ Tag Management":
+    st.markdown('<div class="section-header">ðŸ·ï¸ Tag Management & Statistics</div>', unsafe_allow_html=True)
+    
+    # Get trade statistics
+    trade_stats = get_trade_statistics(data)
+    
+    if trade_stats:
+        # Overall statistics
+        st.subheader("ðŸ“Š Overall Trade Statistics")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total Trades", trade_stats['total_trades'])
+        with col2:
+            st.metric("Win Rate", f"{trade_stats['win_rate']:.1f}%")
+        with col3:
+            st.metric("Wins", trade_stats['win_trades'], delta=None)
+        with col4:
+            st.metric("Losses", trade_stats['loss_trades'], delta=None)
+        
+        # Tag statistics table
+        st.subheader("ðŸ·ï¸ Tag Performance")
+        
+        if trade_stats['tag_counts']:
+            # Create DataFrame for tag statistics
+            tag_data = []
+            for tag, counts in trade_stats['tag_counts'].items():
+                completed = counts['wins'] + counts['losses']
+                win_rate = (counts['wins'] / completed * 100) if completed > 0 else 0
+                
+                tag_data.append({
+                    'Tag': tag,
+                    'Total Trades': counts['total'],
+                    'Wins': counts['wins'],
+                    'Losses': counts['losses'],
+                    'Pending': counts['total'] - completed,
+                    'Win Rate %': f"{win_rate:.1f}%"
+                })
+            
+            # Sort by total trades
+            tag_df = pd.DataFrame(tag_data)
+            tag_df = tag_df.sort_values('Total Trades', ascending=False)
+            
+            st.dataframe(tag_df, use_container_width=True, hide_index=True)
+            
+            # Tag performance chart
+            if len(tag_data) > 0:
+                # Filter tags with at least one completed trade for the chart
+                chart_data = [t for t in tag_data if t['Wins'] + t['Losses'] > 0]
+                
+                if chart_data:
+                    fig = go.Figure()
+                    
+                    tags = [t['Tag'] for t in chart_data]
+                    win_rates = [float(t['Win Rate %'].replace('%', '')) for t in chart_data]
+                    total_trades = [t['Total Trades'] for t in chart_data]
+                    
+                    # Color bars by win rate
+                    colors = ['green' if wr >= 60 else 'orange' if wr >= 40 else 'red' for wr in win_rates]
+                    
+                    fig.add_trace(go.Bar(
+                        x=tags,
+                        y=win_rates,
+                        marker_color=colors,
+                        text=[f"{wr:.1f}%<br>({tt} trades)" for wr, tt in zip(win_rates, total_trades)],
+                        textposition='auto',
+                        name="Win Rate"
+                    ))
+                    
+                    fig.update_layout(
+                        title="Tag Performance by Win Rate",
+                        xaxis_title="Tags",
+                        yaxis_title="Win Rate (%)",
+                        template="plotly_dark",
+                        showlegend=False
+                    )
+                    
+                    # Add horizontal line at 50%
+                    fig.add_hline(y=50, line_dash="dash", line_color="gray", 
+                                 annotation_text="Break-even line")
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+        
+        # Recent trades
+        st.subheader("ðŸ“ˆ Recent Trades")
+        recent_trades = trade_stats.get('recent_trades', [])[:5]
+        
+        for trade in recent_trades:
+            outcome_colors = {
+                'win': 'green',
+                'loss': 'red',
+                'pending': 'orange'
+            }
+            outcome_icons = {
+                'win': 'âœ…',
+                'loss': 'âŒ',
+                'pending': 'â³'
+            }
+            
+            color = outcome_colors.get(trade.get('outcome', 'pending'), 'gray')
+            icon = outcome_icons.get(trade.get('outcome', 'pending'), 'â“')
+            
+            # Create tags display
+            tags_html = ""
+            for tag in trade.get('tags', []):
+                tags_html += f'<span class="tag-chip">{tag}</span>'
+            
+            st.markdown(f"""
+            <div class="trade-card">
+                <strong>{trade.get('date', 'Unknown Date')} - {trade.get('timestamp', 'Unknown Time').split(' ')[1]}</strong>
+                <span style="color: {color}; float: right;">{icon} {trade.get('outcome', 'pending').upper()}</span>
+                <br>
+                <strong>Description:</strong> {trade.get('description', 'No description')[:100]}{'...' if len(trade.get('description', '')) > 100 else ''}
+                <br>
+                <strong>Tags:</strong> {tags_html}
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # Tag management
+    st.markdown("---")
+    st.subheader("ðŸ› ï¸ Manage Tags")
+    
+    all_tags = get_all_tags(data)
+    
+    if all_tags:
+        st.write(f"**Current tags ({len(all_tags)}):**")
+        
+        # Display all tags with delete option
+        for tag in all_tags:
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.markdown(f'<span class="tag-chip">{tag}</span>', unsafe_allow_html=True)
+            with col2:
+                if st.button("ðŸ—‘ï¸", key=f"delete_tag_{tag}", help=f"Delete tag '{tag}'"):
+                    # Remove tag from system
+                    data['tags'].remove(tag)
+                    
+                    # Remove tag from all trades
+                    for date_key, entry in data.items():
+                        if date_key != 'tags' and 'trade_day' in entry:
+                            for trade in entry['trade_day'].get('trades', []):
+                                if 'tags' in trade and tag in trade['tags']:
+                                    trade['tags'].remove(tag)
+                    
+                    # Save changes
+                    if st.session_state.get('github_connected', False):
+                        st.session_state.github_storage.save_journal_entry("tags", {}, data)
+                    save_local_data(data)
+                    st.success(f"Tag '{tag}' deleted from system!")
+                    st.rerun()
+    else:
+        st.info("No tags created yet. Add tags when creating trades.")
+    
+    # Add new tags manually
+    st.subheader("âž• Add New Tags")
+    new_tags_manual = st.text_input(
+        "Add tags (comma-separated)",
+        placeholder="momentum, reversal, gap-up, earnings-play",
+        key="manual_tags_input"
+    )
+    
+    if st.button("ðŸ’¾ Add Tags", key="add_manual_tags"):
+        if new_tags_manual.strip():
+            tags_to_add = [tag.strip() for tag in new_tags_manual.split(',') if tag.strip()]
+            added_count = 0
+            
+            for tag in tags_to_add:
+                if tag not in get_all_tags(data):
+                    data = add_tag_to_system(data, tag)
+                    added_count += 1
+            
+            if added_count > 0:
+                # Save changes
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry("tags", {}, data)
+                save_local_data(data)
+                st.success(f"Added {added_count} new tags!")
+                st.rerun()
+            else:
+                st.info("All tags already exist in the system.")
+
+# ======== TRADE LOG ANALYSIS PAGE ========
+elif page == "ðŸ“Š Trade Log Analysis":
+    st.markdown('<div class="section-header">ðŸ“Š Trade Log Analysis</div>', unsafe_allow_html=True)
+    
+    # Clear session state if date changed
+    if st.session_state.last_analysis_date != date_key:
+        st.session_state.trade_analysis = None
+        st.session_state.trade_data = None
+        st.session_state.last_analysis_date = date_key
+    
+    # Display selected date at the top
+    st.markdown(f"### ðŸ“… Analyzing trade log for: {selected_date.strftime('%A, %B %d, %Y')}")
+    
+    # Check if there's existing trade log data for this date
+    existing_trade_log = current_entry.get('trade_log', {})
+    has_existing_data = bool(existing_trade_log.get('analysis'))
+    
+    if has_existing_data:
+        st.success(f"âœ… Trade log data found for {selected_date.strftime('%B %d, %Y')}!")
+        
+        # Show option to view existing or upload new
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("ðŸ‘ï¸ View Existing Trade Log", key="view_existing"):
+                st.session_state.trade_log_action = "view_existing"
+                st.session_state.trade_analysis = existing_trade_log.get('analysis', {})
+                st.rerun()
+        with col2:
+            if st.button("ðŸ”„ Replace with New Upload", key="replace_upload"):
+                st.session_state.trade_log_action = "upload_new"
+                st.session_state.trade_analysis = None
+                st.session_state.trade_data = None
+                st.rerun()
+    
+    # Determine what to show based on state
+    if has_existing_data and st.session_state.trade_log_action == "view_existing":
+        # User chose to view existing - load the data
+        if not st.session_state.trade_analysis:
+            st.session_state.trade_analysis = existing_trade_log.get('analysis', {})
+        # Don't show upload interface
+        
+    elif has_existing_data and st.session_state.trade_log_action == "upload_new":
+        # User chose to upload new - show upload interface
+        st.subheader("ðŸ”„ Upload New Trade Log")
+        st.info("Upload a new file to replace the existing trade log data.")
+        
+        uploaded_file = st.file_uploader(
+            f"Upload trade log for {selected_date.strftime('%B %d, %Y')} (CSV or TSV format)",
+            type=['txt', 'csv', 'tsv'],
+            help="Upload trade logs from your broker (e.g., TradeActivityLogExport files)",
+            key=f"trade_log_upload_new_{date_key}"
+        )
+        
+        if uploaded_file is not None:
+            file_content = uploaded_file.read().decode('utf-8')
+            trades, error = parse_trade_log(file_content)
+            
+            if error:
+                st.error(f"Error parsing file: {error}")
+            else:
+                st.session_state.trade_data = trades
+                st.session_state.trade_analysis = analyze_trades(trades)
+                st.success(f"âœ… Successfully parsed {len(trades)} trade records for {selected_date.strftime('%B %d, %Y')}!")
+        
+    elif has_existing_data and st.session_state.trade_log_action is None:
+        # Default state - auto-load existing data
+        if not st.session_state.trade_analysis:
+            st.session_state.trade_analysis = existing_trade_log.get('analysis', {})
+        
+    else:
+        # No existing data - show upload interface
+        st.subheader("ðŸ”„ Upload Trade Log")
+        
+        uploaded_file = st.file_uploader(
+            f"Upload trade log for {selected_date.strftime('%B %d, %Y')} (CSV or TSV format)",
+            type=['txt', 'csv', 'tsv'],
+            help="Upload trade logs from your broker (e.g., TradeActivityLogExport files)",
+            key=f"trade_log_upload_{date_key}"
+        )
+        
+        if uploaded_file is not None:
+            file_content = uploaded_file.read().decode('utf-8')
+            trades, error = parse_trade_log(file_content)
+            
+            if error:
+                st.error(f"Error parsing file: {error}")
+            else:
+                st.session_state.trade_data = trades
+                st.session_state.trade_analysis = analyze_trades(trades)
+                st.success(f"âœ… Successfully parsed {len(trades)} trade records for {selected_date.strftime('%B %d, %Y')}!")
+    
+    # Display analysis if available
+    if st.session_state.trade_analysis:
+        analysis = st.session_state.trade_analysis
+        trades = st.session_state.trade_data if st.session_state.trade_data else []
+        
+        st.markdown("---")
+        st.subheader("ðŸ“ˆ Trading Statistics")
+        
+        # Get saved commission from existing data or allow input
+        saved_commissions = existing_trade_log.get('commissions', 0.0) if has_existing_data else 0.0
+        
+        commission_input = st.number_input(
+            "Total Commissions for Session ($)",
+            min_value=0.0,
+            value=saved_commissions,
+            step=0.01,
+            format="%.2f",
+            help="Enter total commission costs for this trading session"
+        )
+        
+        # Calculate net P&L
+        gross_pnl = analysis.get('daily_pnl', 0)
+        net_pnl = gross_pnl - commission_input
+        
+        # Key metrics in columns - UPDATED WITH WINNER/LOSER STATS
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Total Fills", analysis.get('total_fills', 0))
+            st.metric("Total Volume", f"{analysis.get('total_volume', 0):.0f} contracts")
+        
+        with col2:
+            st.metric("Completed Trades", analysis.get('total_trades', 0))
+            st.metric("Win/Loss Ratio", f"{analysis.get('winning_trades', 0)}/{analysis.get('losing_trades', 0)}")
+        
+        with col3:
+            avg_winner = analysis.get('avg_winner', 0)
+            avg_loser = analysis.get('avg_loser', 0)
+            st.metric("Average Winner", f"${avg_winner:.2f}" if avg_winner > 0 else "$0.00")
+            st.metric("Average Loser", f"${avg_loser:.2f}" if avg_loser < 0 else "$0.00")
+        
+        with col4:
+            st.metric("Win Rate", f"{analysis.get('win_rate', 0):.1f}%")
+            st.metric("Net P&L", f"${net_pnl:.2f}", help="P&L after commissions")
+        
+        # Symbols and Order Types
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("ðŸŽ¯ Symbols Traded")
+            symbols = analysis.get('symbols', [])
+            if symbols:
+                for symbol in symbols:
+                    st.write(f"â€¢ {symbol}")
+            else:
+                st.write("No symbol data available")
+        
+        with col2:
+            st.subheader("ðŸ“‹ Order Types")
+            order_types = analysis.get('order_types', [])
+            if order_types:
+                for order_type in order_types:
+                    st.write(f"â€¢ {order_type}")
+            else:
+                st.write("No order type data available")
+        
+        # Show saved analysis summary
+        if has_existing_data and not trades:
+            st.subheader("ðŸ“Š Saved Analysis Summary")
+            st.write(f"**Trade Fills:** {existing_trade_log.get('fill_count', existing_trade_log.get('trade_count', 'N/A'))}")
+            st.write(f"**Total Volume:** {existing_trade_log.get('total_volume', 'N/A')} contracts")
+            st.write(f"**Completed Trades:** {existing_trade_log.get('completed_trades', existing_trade_log.get('total_trades', 'N/A'))}")
+            st.write(f"**Win Rate:** {existing_trade_log.get('win_rate', 0):.1f}%")
+        
+        # Save/Export functionality
+        st.markdown("---")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            if st.button("ðŸ’¾ Save Analysis to Journal"):
+                # Save trade analysis to selected date
+                current_entry['trade_log'] = {
+                    'analysis': analysis,
+                    'fill_count': len(trades) if trades else analysis.get('total_fills', 0),  # Changed from trade_count
+                    'symbols': analysis.get('symbols', []),
+                    'total_volume': analysis.get('total_volume', 0),
+                    'gross_pnl': gross_pnl,
+                    'commissions': commission_input,
+                    'net_pnl': net_pnl,
+                    'win_rate': analysis.get('win_rate', 0),
+                    'winning_trades': analysis.get('winning_trades', 0),
+                    'losing_trades': analysis.get('losing_trades', 0),
+                    'avg_winner': analysis.get('avg_winner', 0),
+                    'avg_loser': analysis.get('avg_loser', 0),
+                    'completed_trades': analysis.get('total_trades', 0)  # Clearer terminology
+                }
+                
+                if st.session_state.get('github_connected', False):
+                    if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                        st.success(f"âœ… Trade analysis saved to journal for {selected_date.strftime('%B %d, %Y')}!")
+                    else:
+                        save_local_data(data)
+                        st.success(f"ðŸ’¾ Trade analysis saved locally for {selected_date.strftime('%B %d, %Y')}!")
+                else:
+                    save_local_data(data)
+                    st.success(f"ðŸ’¾ Trade analysis saved locally for {selected_date.strftime('%B %d, %Y')}!")
+        
+        with col2:
+            if st.button("ðŸ”„ Update Trading Review P&L"):
+                # Update the trading review P&L with net P&L from trade log
+                if 'trading' not in current_entry:
+                    current_entry['trading'] = {}
+                
+                current_entry['trading']['pnl'] = net_pnl
+                current_entry['trading']['trade_log_sync'] = True
+                current_entry['trading']['gross_pnl'] = gross_pnl
+                current_entry['trading']['commissions'] = commission_input
+                
+                if st.session_state.get('github_connected', False):
+                    if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                        st.success(f"âœ… Trading Review P&L updated to ${net_pnl:.2f} for {selected_date.strftime('%B %d, %Y')}!")
+                    else:
+                        save_local_data(data)
+                        st.success(f"ðŸ’¾ Trading Review P&L updated to ${net_pnl:.2f} for {selected_date.strftime('%B %d, %Y')}!")
+                else:
+                    save_local_data(data)
+                    st.success(f"ðŸ’¾ Trading Review P&L updated to ${net_pnl:.2f} for {selected_date.strftime('%B %d, %Y')}!")
+        
+        with col3:
+            if st.button("ðŸ—‘ï¸ Delete Trade Log"):
+                # Remove trade log from current entry
+                if 'trade_log' in current_entry:
+                    del current_entry['trade_log']
+                
+                # Clear session state
+                st.session_state.trade_analysis = None
+                st.session_state.trade_data = None
+                st.session_state.trade_log_action = None
+                
+                # Save the updated data
+                if st.session_state.get('github_connected', False):
+                    if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                        st.success("âœ… Trade log deleted from GitHub!")
+                    else:
+                        save_local_data(data)
+                        st.success("ðŸ’¾ Trade log deleted locally!")
+                else:
+                    save_local_data(data)
+                    st.success("ðŸ’¾ Trade log deleted locally!")
+                
+                st.rerun()
+        
+        with col4:
+            # Export filtered data as CSV - only if we have trade data
+            if trades:
+                df = pd.DataFrame(trades)
+                csv = df.to_csv(index=False)
+                st.download_button(
+                    label="ðŸ“¤ Export Trades as CSV",
+                    data=csv,
+                    file_name=f"trades_{selected_date.strftime('%Y%m%d')}.csv",
+                    mime="text/csv"
+                )
+            else:
+                st.write("ðŸ“¤ Export not available")
+    
+    else:
+        st.info(f"No trade log data available for {selected_date.strftime('%B %d, %Y')}. Upload a trade log file to see detailed analysis and statistics.")
+        
+        # Show sample format
+        st.subheader("ðŸ“‹ Supported File Formats")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**ðŸ“„ CSV/TSV Format:**")
+            st.write("Your trade log should be in CSV or TSV format with columns like:")
+            st.code("""
+DateTime, Symbol, BuySell, Quantity, FillPrice, OrderType, OpenClose, PositionQuantity
+2025-09-08 05:49:31, F.US.mNQU25, Buy, 3, 23736.50, Market, Open, 3
+2025-09-08 06:06:38, F.US.mNQU25, Sell, 1, 23746.75, Market, Close, 2
+            """)
+        
+        with col2:
+            st.markdown("**ðŸ“„ PDF Format (AMP Futures):**")
+            st.write("Upload your AMP Futures daily statement PDF directly:")
+            st.write("âœ… Automatically extracts individual trades")
+            st.write("âœ… Calculates commission and fees")
+            st.write("âœ… Processes MNQ and Mini-NASDAQ futures")
+            st.write("âœ… Handles buy/sell quantities and prices")
+            st.info("ðŸ’¡ PDF parsing extracts data from Trade Confirmations section and auto-fills commission costs.")
+
+# ======== MORNING PREP PAGE - COMPLETELY FIXED ========
+elif page == "ðŸŒ… Morning Prep":
+    st.markdown('<div class="section-header">ðŸŒ… Morning Preparation</div>', unsafe_allow_html=True)
+    
+    # Show current date and delete option
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown(f"### ðŸ“… {selected_date.strftime('%A, %B %d, %Y')}")
+    with col2:
+        if st.button("ðŸ—‘ï¸ Delete Entry", key="delete_morning", help="Delete all data for this date"):
+            if date_key in data:
+                del data[date_key]
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry(date_key, {}, data)
+                save_local_data(data)
+                st.success("Entry deleted!")
+                st.rerun()
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Personal Check-in")
+        
+        sleep_quality = st.slider(
+            "Sleep Quality (1-10)",
+            1, 10,
+            value=current_entry['morning'].get('sleep_quality', 7),
+            key="sleep_quality"
+        )
+        
+        emotional_state = st.selectbox(
+            "Emotional State",
+            ["Calm & Focused", "Excited", "Anxious", "Stressed", "Tired", "Confident", "Uncertain"],
+            index=["Calm & Focused", "Excited", "Anxious", "Stressed", "Tired", "Confident", "Uncertain"].index(
+                current_entry['morning'].get('emotional_state', "Calm & Focused")
+            )
+        )
+        
+        post_night_shift = st.checkbox(
+            "Post Night Shift?",
+            value=current_entry['morning'].get('post_night_shift', False)
+        )
+        
+        checked_news = st.checkbox(
+            "Checked News & Market Events?",
+            value=current_entry['morning'].get('checked_news', False)
+        )
+        
+        # FIXED: Market News text box right below the checkbox
+        market_news = st.text_area(
+            "Market News & Events for Today",
+            value=current_entry['morning'].get('market_news', ""),
+            height=100,
+            placeholder="Add any relevant news, economic data, or market events..."
+        )
+        
+        triggers_present = st.text_area(
+            "Any triggers/reasons why you shouldn't trade today?",
+            value=current_entry['morning'].get('triggers_present', ""),
+            height=100
+        )
+        
+        grateful_for = st.text_area(
+            "What are you grateful for today?",
+            value=current_entry['morning'].get('grateful_for', ""),
+            height=100
+        )
+        
+        # FIXED: Screenshot upload for morning prep WITH CAPTIONS
+        st.subheader("ðŸ“¸ Morning Screenshots")
+        
+        # Initialize current_entry['morning'] if it doesn't exist
+        if 'morning' not in current_entry:
+            current_entry['morning'] = {}
+        
+        # Ensure screenshots array exists
+        if 'morning_screenshots' not in current_entry['morning']:
+            current_entry['morning']['morning_screenshots'] = []
+        
+        # Use a unique key based on the number of existing screenshots to avoid conflicts
+        existing_morning_count = len(current_entry['morning'].get('morning_screenshots', []))
+        morning_upload_key = f"morning_screenshot_{date_key}_{existing_morning_count}"
+        
+        morning_screenshot = st.file_uploader(
+            "Upload market analysis, news, or prep screenshots",
+            type=['png', 'jpg', 'jpeg'],
+            key=morning_upload_key,
+            help="Select an image file to upload"
+        )
+        
+        # Handle immediate upload when file is selected
+        if morning_screenshot is not None:
+            # Use a unique caption key as well
+            morning_caption_key = f"morning_caption_{date_key}_{existing_morning_count}"
+            
+            # Caption input
+            morning_caption = st.text_input(
+                "Screenshot Caption",
+                placeholder="Describe this screenshot...",
+                key=morning_caption_key
+            )
+            
+            # Upload button with unique key
+            morning_upload_btn_key = f"upload_morning_btn_{date_key}_{existing_morning_count}"
+            
+            if st.button("ðŸ“¤ Upload Screenshot", key=morning_upload_btn_key):
+                if not morning_caption.strip():
+                    st.warning("âš ï¸ Please add a caption for your screenshot!")
+                else:
+                    # Get existing screenshots
+                    morning_screenshots = current_entry['morning'].get('morning_screenshots', [])
+                    
+                    success = False
+                    if st.session_state.get('github_connected', False):
+                        # Upload to GitHub
+                        try:
+                            file_data = morning_screenshot.getvalue()
+                            timestamp = int(datetime.now().timestamp())
+                            filename = f"morning_{timestamp}_{morning_screenshot.name}"
+                            screenshot_url = st.session_state.github_storage.upload_screenshot(
+                                file_data, filename, date_key
+                            )
+                            if screenshot_url:
+                                # Save as dict with URL and caption
+                                morning_screenshots.append({
+                                    'url': screenshot_url,
+                                    'caption': morning_caption
+                                })
+                                success = True
+                                st.success(f"âœ… Screenshot '{morning_caption}' uploaded to GitHub!")
+                            else:
+                                st.error("âŒ Failed to upload screenshot to GitHub")
+                        except Exception as e:
+                            st.error(f"âŒ GitHub upload error: {str(e)}")
+                    else:
+                        # Save locally
+                        try:
+                            screenshot_path = save_uploaded_file_local(morning_screenshot, date_key, "morning")
+                            if screenshot_path:
+                                morning_screenshots.append({
+                                    'url': screenshot_path,
+                                    'caption': morning_caption
+                                })
+                                success = True
+                                st.success(f"âœ… Screenshot '{morning_caption}' saved locally!")
+                            else:
+                                st.error("âŒ Failed to save screenshot locally")
+                        except Exception as e:
+                            st.error(f"âŒ Local save error: {str(e)}")
+                    
+                    if success:
+                        # Update the entry
+                        current_entry['morning']['morning_screenshots'] = morning_screenshots
+                        
+                        # Save immediately
+                        try:
+                            if st.session_state.get('github_connected', False):
+                                if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                                    st.success("ðŸ“ Entry updated successfully!")
+                                else:
+                                    st.error("âŒ Failed to save entry to GitHub")
+                            else:
+                                save_local_data(data)
+                                st.success("ðŸ“ Entry updated successfully!")
+                        except Exception as e:
+                            st.error(f"âŒ Save error: {str(e)}")
+                        
+                        # Force rerun to refresh the page and clear the upload
+                        st.rerun()
+        
+        # Display existing morning screenshots
+        existing_morning_screenshots = current_entry['morning'].get('morning_screenshots', [])
+        if existing_morning_screenshots:
+            st.markdown("**Uploaded Screenshots:**")
+            
+            for i, screenshot_data in enumerate(existing_morning_screenshots):
+                if screenshot_data:
+                    # Handle both old format (just URL) and new format (dict with URL and caption)
+                    if isinstance(screenshot_data, dict):
+                        screenshot_link = screenshot_data.get('url', '')
+                        screenshot_caption = screenshot_data.get('caption', f"Morning Screenshot {i+1}")
+                    else:
+                        screenshot_link = screenshot_data
+                        screenshot_caption = f"Morning Screenshot {i+1}"
+                    
+                    if screenshot_link:
+                        col_img, col_delete = st.columns([4, 1])
+                        with col_img:
+                            st.markdown(f"**{screenshot_caption}:**")
+                            display_image_full_size(screenshot_link, screenshot_caption)
+                        with col_delete:
+                            delete_morning_key = f"delete_morning_img_{date_key}_{i}"
+                            if st.button("ðŸ—‘ï¸", key=delete_morning_key, help="Delete this screenshot"):
+                                # Remove screenshot
+                                current_entry['morning']['morning_screenshots'].pop(i)
+                                
+                                # Save immediately
+                                try:
+                                    if st.session_state.get('github_connected', False):
+                                        st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+                                    save_local_data(data)
+                                    st.success("Screenshot deleted!")
+                                except Exception as e:
+                                    st.error(f"Error deleting screenshot: {str(e)}")
+                                st.rerun()
+    
+    with col2:
+        st.subheader("Trading Goals & Rules")
+        
+        daily_goal = st.text_area(
+            "Daily Trading Goal",
+            value=current_entry['morning'].get('daily_goal', ""),
+            height=100
+        )
+        
+        trading_process = st.text_area(
+            "Trading Process Focus",
+            value=current_entry['morning'].get('trading_process', ""),
+            height=200
+        )
+        
+        st.subheader("Trading Rules")
+        
+        # Display existing rules
+        if 'rules' not in current_entry:
+            current_entry['rules'] = []
+        
+        # Keep track of rules to delete
+        rules_to_delete = []
+        
+        for i, rule in enumerate(current_entry['rules']):
+            col_rule, col_delete = st.columns([4, 1])
+            with col_rule:
+                new_rule_value = st.text_input(
+                    f"Rule {i+1}",
+                    value=rule,
+                    key=f"rule_{i}",
+                    placeholder="Enter your trading rule here..."
+                )
+                # Update the rule in real-time
+                current_entry['rules'][i] = new_rule_value
+            with col_delete:
+                if st.button("âŒ", key=f"delete_rule_{i}"):
+                    rules_to_delete.append(i)
+        
+        # Remove deleted rules (in reverse order to maintain indices)
+        for i in reversed(rules_to_delete):
+            current_entry['rules'].pop(i)
+            # Save immediately
+            if st.session_state.get('github_connected', False):
+                st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+            save_local_data(data)
+            st.rerun()
+        
+        if st.button("âž• Add Rule"):
+            current_entry['rules'].append("New rule - click to edit")
+            # Save immediately
+            if st.session_state.get('github_connected', False):
+                st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+            save_local_data(data)
+            st.rerun()
+    
+    # Save morning data - FIXED to include market_news and morning_screenshots
+    if st.button("ðŸ’¾ Save Morning Prep", type="primary"):
+        current_entry['morning'] = {
+            'sleep_quality': sleep_quality,
+            'emotional_state': emotional_state,
+            'post_night_shift': post_night_shift,
+            'checked_news': checked_news,
+            'market_news': market_news,  # FIXED: Include market news
+            'triggers_present': triggers_present,
+            'grateful_for': grateful_for,
+            'daily_goal': daily_goal,
+            'trading_process': trading_process,
+            'morning_screenshots': current_entry['morning'].get('morning_screenshots', [])  # FIXED: Keep existing screenshots
+        }
+        
+        # Save to GitHub and local
+        if st.session_state.get('github_connected', False):
+            if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                st.success("âœ… Morning prep saved to GitHub!")
+            else:
+                save_local_data(data)
+                st.success("ðŸ’¾ Morning prep saved locally!")
+        else:
+            save_local_data(data)
+            st.success("ðŸ’¾ Morning prep saved locally!")
+
+# ======== TRADING REVIEW PAGE ========
+elif page == "ðŸ“ˆ Trading Review":
+    st.markdown('<div class="section-header">ðŸ“ˆ Post-Trading Review</div>', unsafe_allow_html=True)
+    
+    # Show current date and delete option
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown(f"### ðŸ“… {selected_date.strftime('%A, %B %d, %Y')}")
+    with col2:
+        if st.button("ðŸ—‘ï¸ Delete Entry", key="delete_trading", help="Delete all data for this date"):
+            if date_key in data:
+                del data[date_key]
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry(date_key, {}, data)
+                save_local_data(data)
+                st.success("Entry deleted!")
+                st.rerun()
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Performance Metrics")
+        
+        pnl = st.number_input(
+            "P&L for the Day ($)",
+            value=current_entry['trading'].get('pnl', 0.0),
+            format="%.2f",
+            help="Manual entry or synced from Trade Log Analysis"
+        )
+        
+        # Show if P&L is synced from trade log
+        if current_entry['trading'].get('trade_log_sync', False):
+            gross_pnl = current_entry['trading'].get('gross_pnl', 0)
+            commissions = current_entry['trading'].get('commissions', 0)
+            st.info(f"ðŸ”„ P&L synced from Trade Log: Gross ${gross_pnl:.2f} - Commissions ${commissions:.2f} = Net ${pnl:.2f}")
+        
+        process_grade = st.selectbox(
+            "Grade Your Process (A-F)",
+            ["A", "B", "C", "D", "F"],
+            index=["A", "B", "C", "D", "F"].index(
+                current_entry['trading'].get('process_grade', "A")
+            )
+        )
+        
+        grade_reasoning = st.text_area(
+            "Why did you grade yourself this way?",
+            value=current_entry['trading'].get('grade_reasoning', ""),
+            height=100
+        )
+        
+        general_comments = st.text_area(
+            "General comments on the trading day",
+            value=current_entry['trading'].get('general_comments', ""),
+            height=100
+        )
+        
+        screenshot_notes = st.text_area(
+            "Screenshot/Entry Notes",
+            value=current_entry['trading'].get('screenshot_notes', ""),
+            height=100,
+            help="Describe your entries, exits, and any screenshots you took"
+        )
+        
+        # Screenshot upload for trading WITH CAPTIONS
+        st.subheader("ðŸ“¸ Trading Screenshots")
+        
+        # Initialize current_entry['trading'] if it doesn't exist
+        if 'trading' not in current_entry:
+            current_entry['trading'] = {}
+        
+        # Ensure screenshots array exists
+        if 'trading_screenshots' not in current_entry['trading']:
+            current_entry['trading']['trading_screenshots'] = []
+        
+        # Use a unique key based on the number of existing screenshots to avoid conflicts
+        existing_screenshot_count = len(current_entry['trading'].get('trading_screenshots', []))
+        upload_key = f"trading_screenshot_{date_key}_{existing_screenshot_count}"
+        
+        trading_screenshot = st.file_uploader(
+            "Upload entry/exit screenshots, charts, or P&L",
+            type=['png', 'jpg', 'jpeg'],
+            key=upload_key,
+            help="Select an image file to upload"
+        )
+        
+        # Handle immediate upload when file is selected
+        if trading_screenshot is not None:
+            # Use a unique caption key as well
+            caption_key = f"trading_caption_{date_key}_{existing_screenshot_count}"
+            
+            # Caption input
+            trading_caption = st.text_input(
+                "Screenshot Caption",
+                placeholder="Describe this screenshot...",
+                key=caption_key
+            )
+            
+            # Upload button with unique key
+            upload_btn_key = f"upload_trading_btn_{date_key}_{existing_screenshot_count}"
+            
+            if st.button("ðŸ“¤ Upload Screenshot", key=upload_btn_key):
+                if not trading_caption.strip():
+                    st.warning("âš ï¸ Please add a caption for your screenshot!")
+                else:
+                    # Get existing screenshots
+                    trading_screenshots = current_entry['trading'].get('trading_screenshots', [])
+                    
+                    success = False
+                    if st.session_state.get('github_connected', False):
+                        # Upload to GitHub
+                        try:
+                            file_data = trading_screenshot.getvalue()
+                            timestamp = int(datetime.now().timestamp())
+                            filename = f"trading_{timestamp}_{trading_screenshot.name}"
+                            screenshot_url = st.session_state.github_storage.upload_screenshot(
+                                file_data, filename, date_key
+                            )
+                            if screenshot_url:
+                                # Save as dict with URL and caption
+                                trading_screenshots.append({
+                                    'url': screenshot_url,
+                                    'caption': trading_caption
+                                })
+                                success = True
+                                st.success(f"âœ… Screenshot '{trading_caption}' uploaded to GitHub!")
+                            else:
+                                st.error("âŒ Failed to upload screenshot to GitHub")
+                        except Exception as e:
+                            st.error(f"âŒ GitHub upload error: {str(e)}")
+                    else:
+                        # Save locally
+                        try:
+                            screenshot_path = save_uploaded_file_local(trading_screenshot, date_key, "trading")
+                            if screenshot_path:
+                                trading_screenshots.append({
+                                    'url': screenshot_path,
+                                    'caption': trading_caption
+                                })
+                                success = True
+                                st.success(f"âœ… Screenshot '{trading_caption}' saved locally!")
+                            else:
+                                st.error("âŒ Failed to save screenshot locally")
+                        except Exception as e:
+                            st.error(f"âŒ Local save error: {str(e)}")
+                    
+                    if success:
+                        # Update the entry
+                        current_entry['trading']['trading_screenshots'] = trading_screenshots
+                        
+                        # Save immediately
+                        try:
+                            if st.session_state.get('github_connected', False):
+                                if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                                    st.success("ðŸ“ Entry updated successfully!")
+                                else:
+                                    st.error("âŒ Failed to save entry to GitHub")
+                            else:
+                                save_local_data(data)
+                                st.success("ðŸ“ Entry updated successfully!")
+                        except Exception as e:
+                            st.error(f"âŒ Save error: {str(e)}")
+                        
+                        # Force rerun to refresh the page and clear the upload
+                        st.rerun()
+        
+        # Display existing trading screenshots
+        existing_screenshots = current_entry['trading'].get('trading_screenshots', [])
+        if existing_screenshots:
+            st.markdown("**Uploaded Screenshots:**")
+            
+            for i, screenshot_data in enumerate(existing_screenshots):
+                if screenshot_data:
+                    # Handle both old format (just URL) and new format (dict with URL and caption)
+                    if isinstance(screenshot_data, dict):
+                        screenshot_link = screenshot_data.get('url', '')
+                        screenshot_caption = screenshot_data.get('caption', f"Trading Screenshot {i+1}")
+                    else:
+                        screenshot_link = screenshot_data
+                        screenshot_caption = f"Trading Screenshot {i+1}"
+                    
+                    if screenshot_link:
+                        col_img, col_delete = st.columns([4, 1])
+                        with col_img:
+                            st.markdown(f"**{screenshot_caption}:**")
+                            display_image_full_size(screenshot_link, screenshot_caption)
+                        with col_delete:
+                            delete_key = f"delete_trading_img_{date_key}_{i}"
+                            if st.button("ðŸ—‘ï¸", key=delete_key, help="Delete this screenshot"):
+                                # Remove screenshot
+                                current_entry['trading']['trading_screenshots'].pop(i)
+                                
+                                # Save immediately
+                                try:
+                                    if st.session_state.get('github_connected', False):
+                                        st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+                                    save_local_data(data)
+                                    st.success("Screenshot deleted!")
+                                except Exception as e:
+                                    st.error(f"Error deleting screenshot: {str(e)}")
+                                st.rerun()
+        
+        # Add some spacing
+        st.markdown("---")
+    
+    with col2:
+        st.subheader("Rule Compliance")
+        
+        if current_entry['rules']:
+            rule_compliance = {}
+            for i, rule in enumerate(current_entry['rules']):
+                if rule.strip():  # Only show non-empty rules
+                    compliance = st.checkbox(
+                        f"âœ… {rule}",
+                        value=current_entry['trading'].get('rule_compliance', {}).get(f"rule_{i}", False),
+                        key=f"compliance_{i}"
+                    )
+                    rule_compliance[f"rule_{i}"] = compliance
+        else:
+            st.info("No rules set in morning prep. Go to Morning Prep to add rules.")
+            rule_compliance = {}
+        
+        st.subheader("Reflection")
+        
+        what_could_improve = st.text_area(
+            "What could you have done better?",
+            value=current_entry['trading'].get('what_could_improve', ""),
+            height=100
+        )
+        
+        tomorrow_focus = st.text_area(
+            "What do you want to do better tomorrow?",
+            value=current_entry['trading'].get('tomorrow_focus', ""),
+            height=100
+        )
+    
+    # Calculate overall compliance
+    if rule_compliance:
+        compliance_rate = sum(rule_compliance.values()) / len(rule_compliance) * 100
+        st.metric("Rule Compliance Rate", f"{compliance_rate:.1f}%")
+    
+    # Save trading data
+    if st.button("ðŸ’¾ Save Trading Review", type="primary"):
+        current_entry['trading'] = {
+            'pnl': pnl,
+            'process_grade': process_grade,
+            'grade_reasoning': grade_reasoning,
+            'general_comments': general_comments,
+            'screenshot_notes': screenshot_notes,
+            'rule_compliance': rule_compliance,
+            'what_could_improve': what_could_improve,
+            'tomorrow_focus': tomorrow_focus,
+            'trading_screenshots': current_entry['trading'].get('trading_screenshots', [])  # Keep existing screenshots
+        }
+        
+        # Preserve trade log sync data if it exists
+        if current_entry['trading'].get('trade_log_sync', False):
+            current_entry['trading']['trade_log_sync'] = True
+            current_entry['trading']['gross_pnl'] = current_entry['trading'].get('gross_pnl', 0)
+            current_entry['trading']['commissions'] = current_entry['trading'].get('commissions', 0)
+        
+        # Save to GitHub and local
+        if st.session_state.get('github_connected', False):
+            if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                st.success("âœ… Trading review saved to GitHub!")
+            else:
+                save_local_data(data)
+                st.success("ðŸ’¾ Trading review saved locally!")
+        else:
+            save_local_data(data)
+            st.success("ðŸ’¾ Trading review saved locally!")
+
+# ======== EVENING RECAP PAGE ========
+elif page == "ðŸŒ™ Evening Recap":
+    st.markdown('<div class="section-header">ðŸŒ™ Evening Life Recap</div>', unsafe_allow_html=True)
+    
+    # Show current date and delete option
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown(f"### ðŸ“… {selected_date.strftime('%A, %B %d, %Y')}")
+    with col2:
+        if st.button("ðŸ—‘ï¸ Delete Entry", key="delete_evening", help="Delete all data for this date"):
+            if date_key in data:
+                del data[date_key]
+                if st.session_state.get('github_connected', False):
+                    st.session_state.github_storage.save_journal_entry(date_key, {}, data)
+                save_local_data(data)
+                st.success("Entry deleted!")
+                st.rerun()
+    
+    st.subheader("Personal Reflection")
+    st.write("Reflect on your day as a person, father, and husband")
+    
+    personal_recap = st.text_area(
+        "How was your day outside of trading?",
+        value=current_entry['evening'].get('personal_recap', ""),
+        height=200,
+        help="Reflect on family time, personal goals, relationships, and overall well-being"
+    )
+    
+    family_highlights = st.text_area(
+        "Family Highlights",
+        value=current_entry['evening'].get('family_highlights', ""),
+        height=150,
+        help="Special moments with family, conversations with spouse/children"
+    )
+    
+    personal_wins = st.text_area(
+        "Personal Wins & Growth",
+        value=current_entry['evening'].get('personal_wins', ""),
+        height=150,
+        help="Non-trading accomplishments, personal development, habits"
+    )
+    
+    tomorrow_intentions = st.text_area(
+        "Intentions for Tomorrow",
+        value=current_entry['evening'].get('tomorrow_intentions', ""),
+        height=150,
+        help="How do you want to show up as a person, father, and husband tomorrow?"
+    )
+    
+    # Save evening data
+    if st.button("ðŸ’¾ Save Evening Recap", type="primary"):
+        current_entry['evening'] = {
+            'personal_recap': personal_recap,
+            'family_highlights': family_highlights,
+            'personal_wins': personal_wins,
+            'tomorrow_intentions': tomorrow_intentions
+        }
+        
+        # Save to GitHub and local
+        if st.session_state.get('github_connected', False):
+            if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                st.success("âœ… Evening recap saved to GitHub!")
+            else:
+                save_local_data(data)
+                st.success("ðŸ’¾ Evening recap saved locally!")
+        else:
+            save_local_data(data)
+            st.success("ðŸ’¾ Evening recap saved locally!")
+
+# ======== HISTORICAL ANALYSIS PAGE ========
+elif page == "ðŸ“š Historical Analysis":
+    st.markdown('<div class="section-header">ðŸ“š Historical Analysis</div>', unsafe_allow_html=True)
+    
+    # Date range selector
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input(
+            "Start Date",
+            value=date.today() - timedelta(days=30),
+            max_value=date.today()
+        )
+    with col2:
+        end_date = st.date_input(
+            "End Date",
+            value=date.today(),
+            max_value=date.today()
+        )
+    
+    if st.button("ðŸ“Š Analyze Period"):
+        # Filter data for date range
+        filtered_data = {}
+        current_date = start_date
+        while current_date <= end_date:
+            date_key = get_date_key(current_date)
+            if date_key in data:
+                filtered_data[date_key] = data[date_key]
+            current_date += timedelta(days=1)
+        
+        if filtered_data:
+            # Calculate statistics
+            total_pnl = 0
+            process_compliance_days = 0
+            total_trading_days = 0
+            profitable_days = 0
+            daily_pnls = []
+            
+            for date_key, entry in filtered_data.items():
+                if 'trading' in entry and 'pnl' in entry['trading']:
+                    pnl = entry['trading']['pnl']
+                    total_pnl += pnl
+                    daily_pnls.append(pnl)
+                    total_trading_days += 1
+                    
+                    if pnl > 0:
+                        profitable_days += 1
+                    
+                    # Check process compliance
+                    rule_compliance = entry.get('trading', {}).get('rule_compliance', {})
+                    if rule_compliance:
+                        compliance_rate = sum(rule_compliance.values()) / len(rule_compliance)
+                        if compliance_rate >= 0.8:
+                            process_compliance_days += 1
+            
+            # Display metrics
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Total P&L", f"${total_pnl:.2f}")
+            
+            with col2:
+                avg_pnl = total_pnl / total_trading_days if total_trading_days > 0 else 0
+                st.metric("Average Daily P&L", f"${avg_pnl:.2f}")
+            
+            with col3:
+                process_rate = (process_compliance_days / total_trading_days * 100) if total_trading_days > 0 else 0
+                st.metric("Process Success Rate", f"{process_rate:.1f}%")
+            
+            with col4:
+                win_rate = (profitable_days / total_trading_days * 100) if total_trading_days > 0 else 0
+                st.metric("Win Rate", f"{win_rate:.1f}%")
+            
+            # P&L Chart
+            if daily_pnls:
+                dates = list(filtered_data.keys())
+                pnls = [filtered_data[d].get('trading', {}).get('pnl', 0) for d in dates]
+                
+                fig = go.Figure()
+                colors = ['green' if p > 0 else 'red' if p < 0 else 'gray' for p in pnls]
+                
+                fig.add_trace(go.Bar(
+                    x=dates,
+                    y=pnls,
+                    marker_color=colors,
+                    name="Daily P&L"
+                ))
+                
+                fig.update_layout(
+                    title="Daily P&L Over Time",
+                    xaxis_title="Date",
+                    yaxis_title="P&L ($)",
+                    template="plotly_dark"
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Detailed entries
+            st.subheader("Detailed Entries")
+            
+            for date_key in sorted(filtered_data.keys(), reverse=True):
+                entry = filtered_data[date_key]
+                
+                with st.expander(f"ðŸ“… {date_key}"):
+                    # Morning Section
+                    if 'morning' in entry and entry['morning']:
+                        st.markdown("### ðŸŒ… Morning Preparation")
+                        morning = entry['morning']
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if 'sleep_quality' in morning:
+                                st.write(f"**Sleep Quality:** {morning['sleep_quality']}/10")
+                            if 'emotional_state' in morning:
+                                st.write(f"**Emotional State:** {morning['emotional_state']}")
+                            if 'market_news' in morning and morning['market_news']:
+                                st.write(f"**Market News:** {morning['market_news']}")
+                        
+                        with col2:
+                            if 'daily_goal' in morning and morning['daily_goal']:
+                                st.write(f"**Daily Goal:** {morning['daily_goal']}")
+                            if 'trading_process' in morning and morning['trading_process']:
+                                st.write(f"**Trading Process:** {morning['trading_process']}")
+                        
+                        # Morning Screenshots
+                        morning_screenshots = morning.get('morning_screenshots', [])
+                        if morning_screenshots:
+                            st.write("**Morning Screenshots:**")
+                            for j, screenshot_data in enumerate(morning_screenshots):
+                                if screenshot_data:
+                                    if isinstance(screenshot_data, dict):
+                                        screenshot_link = screenshot_data.get('url', '')
+                                        screenshot_caption = screenshot_data.get('caption', f"Morning Screenshot {j+1}")
+                                    else:
+                                        screenshot_link = screenshot_data
+                                        screenshot_caption = f"Morning Screenshot {j+1}"
+                                    
+                                    if screenshot_link and screenshot_link.strip():
+                                        st.write(f"*{screenshot_caption}:*")
+                                        display_image_full_size(screenshot_link, screenshot_caption)
+                    
+                    # Trade Day Section
+                    if 'trade_day' in entry and entry['trade_day']:
+                        st.markdown("### ðŸ“ˆ Trade Day")
+                        trade_day = entry['trade_day']
+                        
+                        if 'market_observations' in trade_day and trade_day['market_observations']:
+                            st.write(f"**Market Observations:** {trade_day['market_observations']}")
+                        
+                        # Display trades
+                        trades = trade_day.get('trades', [])
+                        if trades:
+                            st.write(f"**Trades ({len(trades)}):**")
+                            for k, trade in enumerate(trades):
+                                outcome = trade.get('outcome', 'pending')
+                                outcome_colors = {
+                                    'win': 'green',
+                                    'loss': 'red',
+                                    'pending': 'orange'
+                                }
+                                outcome_icons = {
+                                    'win': 'âœ…',
+                                    'loss': 'âŒ',
+                                    'pending': 'â³'
+                                }
+                                
+                                color = outcome_colors.get(outcome, 'gray')
+                                icon = outcome_icons.get(outcome, 'â“')
+                                
+                                # Create tags display
+                                tags_html = ""
+                                for tag in trade.get('tags', []):
+                                    tags_html += f'<span class="tag-chip">{tag}</span>'
+                                
+                                st.markdown(f"""
+                                <div class="trade-card">
+                                    <strong>Trade {k+1} - {trade.get('timestamp', 'Unknown Time').split(' ')[1]}</strong>
+                                    <span style="color: {color}; float: right;">{icon} {outcome.upper()}</span>
+                                    <br>
+                                    <strong>Description:</strong> {trade.get('description', 'No description')[:100]}{'...' if len(trade.get('description', '')) > 100 else ''}
+                                    <br>
+                                    <strong>Tags:</strong> {tags_html}
+                                </div>
+                                """, unsafe_allow_html=True)
+                                
+                                # Display trade screenshot if exists
+                                if trade.get('screenshot'):
+                                    st.write(f"*{trade['screenshot']['caption']}:*")
+                                    display_image_full_size(trade['screenshot']['url'], trade['screenshot']['caption'])
+                    
+                    # Trading Section
+                    if 'trading' in entry and entry['trading']:
+                        st.markdown("### ðŸ“ˆ Trading Review")
+                        trading = entry['trading']
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if 'pnl' in trading:
+                                pnl = trading['pnl']
+                                pnl_color = "green" if pnl > 0 else "red" if pnl < 0 else "gray"
+                                st.markdown(f"**P&L:** <span style='color: {pnl_color}'>${pnl:.2f}</span>", unsafe_allow_html=True)
+                            if 'process_grade' in trading:
+                                st.write(f"**Process Grade:** {trading['process_grade']}")
+                        
+                        with col2:
+                            if 'grade_reasoning' in trading and trading['grade_reasoning']:
+                                st.write(f"**Grade Reasoning:** {trading['grade_reasoning']}")
+                            if 'general_comments' in trading and trading['general_comments']:
+                                st.write(f"**General Comments:** {trading['general_comments']}")
+                        
+                        # Trading Screenshots
+                        trading_screenshots = trading.get('trading_screenshots', [])
+                        if trading_screenshots:
+                            st.write("**Trading Screenshots:**")
+                            for j, screenshot_data in enumerate(trading_screenshots):
+                                if screenshot_data:
+                                    if isinstance(screenshot_data, dict):
+                                        screenshot_link = screenshot_data.get('url', '')
+                                        screenshot_caption = screenshot_data.get('caption', f"Trading Screenshot {j+1}")
+                                    else:
+                                        screenshot_link = screenshot_data
+                                        screenshot_caption = f"Trading Screenshot {j+1}"
+                                    
+                                    if screenshot_link:
+                                        st.write(f"*{screenshot_caption}:*")
+                                        display_image_full_size(screenshot_link, screenshot_caption)
+                    
+                    # Trade Log Summary (if available)
+                    if 'trade_log' in entry:
+                        trade_log = entry['trade_log']
+                        st.markdown("### ðŸ“Š Trade Log Summary")
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.write(f"**Trade Fills:** {trade_log.get('fill_count', trade_log.get('trade_count', 'N/A'))}")
+                            st.write(f"**Symbols:** {', '.join(trade_log.get('symbols', []))}")
+                            st.write(f"**Total Volume:** {trade_log.get('total_volume', 'N/A')} contracts")
+                            if 'win_rate' in trade_log:
+                                st.write(f"**Win Rate:** {trade_log['win_rate']:.1f}%")
+                        
+                        with col2:
+                            if 'completed_trades' in trade_log:
+                                st.write(f"**Completed Trades:** {trade_log['completed_trades']}")
+                            if 'avg_winner' in trade_log:
+                                st.write(f"**Average Winner:** ${trade_log['avg_winner']:.2f}")
+                            if 'avg_loser' in trade_log:
+                                st.write(f"**Average Loser:** ${trade_log['avg_loser']:.2f}")
+                    
+                    # Evening Section
+                    if 'evening' in entry and entry['evening']:
+                        st.markdown("### ðŸŒ™ Evening Recap")
+                        evening = entry['evening']
+                        
+                        if 'personal_recap' in evening and evening['personal_recap']:
+                            st.write(f"**Personal Recap:** {evening['personal_recap']}")
+                        if 'family_highlights' in evening and evening['family_highlights']:
+                            st.write(f"**Family Highlights:** {evening['family_highlights']}")
+        else:
+            st.info("No trading data found for the selected date range.")
+
+# UPDATED SIDEBAR STATS - FIXED RULE COMPLIANCE CALCULATION + PROCESS GRADE TRACKING + TRADE STATS
 st.sidebar.markdown("---")
-st.sidebar.subheader("📊 Quick Stats")
+st.sidebar.subheader("ðŸ“Š Quick Stats")
 
-# Rest of the sidebar stats code remains the same...
+# Calculate stats for different periods
+def calculate_period_stats(days):
+    period_data = {}
+    current_date = date.today()
+    for i in range(days):
+        check_date = current_date - timedelta(days=i)
+        date_key = get_date_key(check_date)
+        if date_key in data:
+            period_data[date_key] = data[date_key]
+    return period_data
 
-# Export/Import functionality at bottom of sidebar
+# 5-day and 30-day stats
+recent_5_data = calculate_period_stats(5)
+recent_30_data = calculate_period_stats(30)
+
+def get_period_metrics(period_data):
+    if not period_data:
+        return 0, 0
+    
+    total_pnl = sum([entry.get('trading', {}).get('pnl', 0) for entry in period_data.values()])
+    
+    # Calculate EXACT rule compliance percentage (total rules followed / total rules)
+    total_rules_followed = 0
+    total_rules_possible = 0
+    
+    for entry in period_data.values():
+        rule_compliance = entry.get('trading', {}).get('rule_compliance', {})
+        if rule_compliance:  # Only count days with trading data
+            # Count how many rules were followed vs total rules for this day
+            rules_followed_today = sum(rule_compliance.values())
+            total_rules_today = len(rule_compliance)
+            
+            total_rules_followed += rules_followed_today
+            total_rules_possible += total_rules_today
+    
+    # Calculate exact percentage of all rules followed
+    overall_compliance = (total_rules_followed / total_rules_possible * 100) if total_rules_possible > 0 else 0
+    return total_pnl, overall_compliance
+
+# Get metrics
+pnl_5, compliance_5 = get_period_metrics(recent_5_data)
+pnl_30, compliance_30 = get_period_metrics(recent_30_data)
+
+# Calculate average grade from recent trading reviews
+def get_recent_grades(period_data):
+    grades = []
+    for entry in period_data.values():
+        grade = entry.get('trading', {}).get('process_grade')
+        if grade:
+            grades.append(grade)
+    return grades
+
+# Get recent grades for trending
+recent_grades = get_recent_grades(recent_30_data)
+if recent_grades:
+    # Count frequency of each grade
+    from collections import Counter
+    grade_counts = Counter(recent_grades)
+    most_common_grade = grade_counts.most_common(1)[0][0]
+    
+    # For display, show the trend of recent grades
+    recent_5_grades = get_recent_grades(recent_5_data)
+    if len(recent_5_grades) >= 2:
+        latest_grade_trend = Counter(recent_5_grades).most_common(1)[0][0]
+    else:
+        latest_grade_trend = most_common_grade
+else:
+    most_common_grade = "N/A"
+    latest_grade_trend = "N/A"
+
+# Display metrics in organized way
+st.sidebar.markdown("**ðŸ“ˆ Last 5 Days**")
+col1, col2 = st.sidebar.columns(2)
+with col1:
+    st.metric("P&L", f"${pnl_5:.2f}")
+with col2:
+    st.metric("Rules", f"{compliance_5:.1f}%")
+
+st.sidebar.markdown("**ðŸ“Š Last 30 Days**")
+col1, col2 = st.sidebar.columns(2)
+with col1:
+    st.metric("P&L", f"${pnl_30:.2f}")
+with col2:
+    st.metric("Rules", f"{compliance_30:.1f}%")
+
+# FIXED: Process Grade Trend
+st.sidebar.markdown("**ðŸŽ¯ Process Grade**")
+if recent_grades:
+    grade_color = {
+        "A": "green", 
+        "B": "blue", 
+        "C": "orange", 
+        "D": "red", 
+        "F": "darkred"
+    }.get(latest_grade_trend, "gray")
+    
+    st.sidebar.markdown(f"Recent Trend: <span style='color: {grade_color}; font-weight: bold; font-size: 1.2em'>{latest_grade_trend}</span>", unsafe_allow_html=True)
+    if len(recent_grades) > 1:
+        st.sidebar.write(f"Last {len(recent_grades)} grades: {' â†’ '.join(recent_grades[-5:])}")
+else:
+    st.sidebar.write("No grades yet")
+
+# NEW: Display trade stats in sidebar if available
+trade_stats = get_trade_statistics(data)
+if trade_stats and trade_stats['total_trades'] > 0:
+    st.sidebar.markdown("**ðŸ·ï¸ Trade Stats**")
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        st.metric("Total Trades", trade_stats['total_trades'])
+    with col2:
+        st.metric("Win Rate", f"{trade_stats['win_rate']:.1f}%")
+    
+    if trade_stats['recent_trades']:
+        latest_outcome = trade_stats['recent_trades'][0].get('outcome', 'pending').upper()
+        outcome_emoji = {'WIN': 'âœ…', 'LOSS': 'âŒ', 'PENDING': 'â³'}.get(latest_outcome, 'â“')
+        st.sidebar.write(f"**Latest:** {outcome_emoji} {latest_outcome}")
+
+# Export/Import functionality
 st.sidebar.markdown("---")
-st.sidebar.subheader("💾 Data Management")
+st.sidebar.subheader("ðŸ’¾ Data Management")
 
-if st.sidebar.button("📤 Export Data"):
+if st.sidebar.button("ðŸ“¤ Export Data"):
     st.sidebar.download_button(
         label="Download JSON",
         data=json.dumps(data, indent=2, default=str),
@@ -1366,7 +3257,7 @@ if st.sidebar.button("📤 Export Data"):
         mime="application/json"
     )
 
-uploaded_file = st.sidebar.file_uploader("📥 Import Data", type=['json'])
+uploaded_file = st.sidebar.file_uploader("ðŸ“¥ Import Data", type=['json'])
 if uploaded_file is not None:
     try:
         imported_data = json.load(uploaded_file)
@@ -1383,14 +3274,14 @@ if uploaded_file is not None:
     except:
         st.sidebar.error("Error importing data")
 
-# GitHub status at the very bottom
+# MOVED: GitHub status to the very bottom
 st.sidebar.markdown("---")
-st.sidebar.title("☁️ Cloud Storage")
+st.sidebar.title("â˜ï¸ Cloud Storage")
 if st.session_state.get('github_connected', False):
-    st.sidebar.success("✅ Connected to GitHub")
+    st.sidebar.success("âœ… Connected to GitHub")
     repo_url = f"https://github.com/{st.session_state.repo_owner}/{st.session_state.repo_name}"
-    st.sidebar.markdown(f"🔗 [View Repository]({repo_url})")
+    st.sidebar.markdown(f"ðŸ”— [View Repository]({repo_url})")
     screenshots_url = f"{repo_url}/tree/main/screenshots"
-    st.sidebar.markdown(f"📸 [View Screenshots]({screenshots_url})")
+    st.sidebar.markdown(f"ðŸ“¸ [View Screenshots]({screenshots_url})")
 else:
-    st.sidebar.warning("⚠️ GitHub not connected")
+    st.sidebar.warning("âš ï¸ GitHub not connected")
