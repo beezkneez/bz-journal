@@ -902,6 +902,19 @@ if st.session_state.get('github_connected', False):
 else:
     st.sidebar.warning("⚠️ GitHub not connected")
 
+# MOVED: Date selector - Now ABOVE navigation menu
+st.sidebar.markdown("---")
+st.sidebar.title("📅 Date Selection")
+selected_date = st.sidebar.date_input(
+    "Select Date",
+    value=st.session_state.current_date,
+    key="date_selector"
+)
+
+# Update current date when changed
+if selected_date != st.session_state.current_date:
+    st.session_state.current_date = selected_date
+
 # UPDATED SIDEBAR NAVIGATION - ADDED TRADE DAY AND TAG MANAGEMENT
 st.sidebar.markdown("---")
 st.sidebar.title("📋 Navigation")
@@ -938,18 +951,6 @@ if st.sidebar.button("🏷️ Tag Management", key="nav_tag_management", use_con
     st.session_state.page = "🏷️ Tag Management"
 
 page = st.session_state.page
-
-# Date selector - FIXED: Removed max_value restriction to allow future dates
-st.sidebar.markdown("---")
-selected_date = st.sidebar.date_input(
-    "📅 Select Date",
-    value=st.session_state.current_date,
-    key="date_selector"
-)
-
-# Update current date when changed
-if selected_date != st.session_state.current_date:
-    st.session_state.current_date = selected_date
 
 date_key = get_date_key(selected_date)
 
