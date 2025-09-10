@@ -1331,7 +1331,7 @@ elif page == "📊 Calendar View":
     with col4:
         st.markdown("💡 **Click View/Add to edit entries**")
 
-# ======== ENHANCED TRADE DAY PAGE WITH IMPORT ========
+# ======== ENHANCED TRADE DAY PAGE WITH SESSION ANALYTICS ========
 elif page == "📈 Trade Day":
     st.markdown('<div class="section-header">📈 Live Trade Day</div>', unsafe_allow_html=True)
     
@@ -1351,225 +1351,220 @@ elif page == "📈 Trade Day":
     
     # Initialize trade_day if doesn't exist
     if 'trade_day' not in current_entry:
-        current_entry['trade_day'] = {'market_observations': '', 'trades': []}
+        current_entry['trade_day'] = {
+            'market_observations': '', 
+            'trades': [],
+            'session_analytics': {
+                'total_trades': 0,
+                'winners': 0,
+                'losers': 0,
+                'break_even': 0,
+                'avg_winner': 0.0,
+                'avg_loser': 0.0,
+                'largest_winner': 0.0,
+                'largest_loser': 0.0,
+                'avg_winner_duration': 0,
+                'avg_loser_duration': 0,
+                'gross_pnl': 0.0,
+                'daily_commission': 0.0,
+                'net_pnl': 0.0
+            }
+        }
     
-    # NEW: Trade Log Import Section
-    st.subheader("📁 Import Trades from Log")
+    # ======== TRADING SESSION ANALYTICS SECTION ========
+    st.subheader("📊 Trading Session Analytics")
     
-    col1, col2 = st.columns([2, 1])
+    # Get current analytics or initialize
+    analytics = current_entry['trade_day'].get('session_analytics', {})
+    
+    # Create the analytics display in the format you specified
+    total_trades = analytics.get('total_trades', 0)
+    winners = analytics.get('winners', 0)
+    losers = analytics.get('losers', 0)
+    break_even = analytics.get('break_even', 0)
+    
+    # Calculate win rate
+    win_rate = (winners / total_trades * 100) if total_trades > 0 else 0
+    
+    # Display analytics in a nice format
+    st.markdown("""
+    <div style="background-color: #1e1e1e; padding: 20px; border-radius: 10px; border: 2px solid #333;">
+    """, unsafe_allow_html=True)
+    
+    # First row of metrics
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Trades", total_trades)
+    with col2:
+        st.metric("Winners", winners, delta=f"+{winners}" if winners > 0 else None)
+    with col3:
+        st.metric("Losers", losers, delta=f"-{losers}" if losers > 0 else None)
+    with col4:
+        st.metric("Break-Even", break_even)
+    
+    # Second row of metrics
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Win Rate", f"{win_rate:.1f}%")
+    with col2:
+        avg_winner = analytics.get('avg_winner', 0)
+        st.metric("Avg Winner", f"${avg_winner:.2f}")
+    with col3:
+        avg_loser = analytics.get('avg_loser', 0)
+        st.metric("Avg Loser", f"${avg_loser:.2f}")
+    with col4:
+        net_pnl = analytics.get('net_pnl', 0)
+        color = "green" if net_pnl > 0 else "red" if net_pnl < 0 else "gray"
+        st.markdown(f'<h3 style="color: {color};">Net P&L: ${net_pnl:.2f}</h3>', unsafe_allow_html=True)
+    
+    # Third row - Duration metrics
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        avg_winner_duration = analytics.get('avg_winner_duration', 0)
+        st.metric("Avg Winner Duration", f"{avg_winner_duration} min")
+    with col2:
+        avg_loser_duration = analytics.get('avg_loser_duration', 0)
+        st.metric("Avg Loser Duration", f"{avg_loser_duration} min")
+    with col3:
+        largest_winner = analytics.get('largest_winner', 0)
+        st.metric("Largest Winner", f"${largest_winner:.2f}")
+    with col4:
+        largest_loser = analytics.get('largest_loser', 0)
+        st.metric("Largest Loser", f"${largest_loser:.2f}")
+    
+    # P&L Summary row
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        gross_pnl = analytics.get('gross_pnl', 0)
+        st.metric("Gross P&L", f"${gross_pnl:.2f}")
+    with col2:
+        daily_commission = analytics.get('daily_commission', 0)
+        st.metric("Commissions", f"${daily_commission:.2f}")
+    with col3:
+        # Net P&L is calculated as gross - commissions
+        calculated_net = gross_pnl - daily_commission
+        st.metric("Net P&L", f"${calculated_net:.2f}")
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # ======== COMMISSION INPUT AND UPDATE SECTION ========
+    st.markdown("---")
+    st.subheader("💰 Session Management")
+    
+    col1, col2 = st.columns(2)
     
     with col1:
-        trade_log_file = st.file_uploader(
-            "Upload trade log file (CSV/TSV)",
-            type=['txt', 'csv', 'tsv'],
-            help="Upload your broker's trade log to automatically create trade entries",
-            key="trade_log_import"
+        st.markdown("**Daily Commission Input**")
+        commission_input = st.number_input(
+            "Total Daily Commission ($)",
+            min_value=0.0,
+            value=analytics.get('daily_commission', 0.0),
+            step=0.01,
+            format="%.2f",
+            help="Enter the total commission costs for today's trading session",
+            key="daily_commission_input"
         )
         
-        if trade_log_file:
-            st.info("💡 This will parse your trade log and create individual trade entries that you can enhance with tags and screenshots.")
-    
-    with col2:
-        if trade_log_file and st.button("🔄 Parse & Import Trades", type="primary"):
-            file_content = trade_log_file.read().decode('utf-8')
-            fills_data, error = parse_trade_log(file_content)
+        if st.button("💾 Update Commission", key="save_commission"):
+            current_entry['trade_day']['session_analytics']['daily_commission'] = commission_input
+            # Recalculate net P&L
+            gross = current_entry['trade_day']['session_analytics'].get('gross_pnl', 0)
+            current_entry['trade_day']['session_analytics']['net_pnl'] = gross - commission_input
             
-            if error:
-                st.error(f"Error parsing file: {error}")
-            else:
-                # Group fills into individual trades
-                individual_trades = group_fills_into_trades(fills_data)
-                
-                if individual_trades:
-                    # Add to session state for bulk editing
-                    st.session_state.imported_trades = individual_trades
-                    st.success(f"✅ Parsed {len(fills_data)} fills into {len(individual_trades)} individual trades!")
-                    st.info("👇 Review and enhance your trades below, then save all at once.")
-                    st.rerun()
-                else:
-                    st.warning("No complete trades found in the log file.")
-    
-    # NEW: Bulk Edit Imported Trades
-    if st.session_state.get('imported_trades'):
-        st.markdown("---")
-        st.subheader("✏️ Review & Enhance Imported Trades")
-        
-        imported_trades = st.session_state.imported_trades
-        
-        # Show summary
-        total_pnl = sum(trade.get('pnl', 0) for trade in imported_trades)
-        winners = len([t for t in imported_trades if t.get('pnl', 0) > 0])
-        losers = len([t for t in imported_trades if t.get('pnl', 0) < 0])
-        
-        st.markdown(f"""
-        <div class="import-summary">
-            <h4>📊 Import Summary</h4>
-            <strong>Total Trades:</strong> {len(imported_trades)} | 
-            <strong>Total P&L:</strong> ${total_pnl:.2f} | 
-            <strong>Winners:</strong> {winners} | 
-            <strong>Losers:</strong> {losers}
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Bulk actions
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            # Bulk tag application
-            all_tags = get_all_tags(data)
-            bulk_tags = st.multiselect(
-                "Apply tags to all trades",
-                options=all_tags,
-                key="bulk_tags_select"
-            )
-            
-            bulk_new_tags = st.text_input(
-                "New tags for all (comma-separated)",
-                placeholder="session-tag, market-condition",
-                key="bulk_new_tags"
-            )
-        
-        with col2:
-            if st.button("🏷️ Apply Bulk Tags"):
-                new_tags = []
-                if bulk_new_tags.strip():
-                    new_tags = [tag.strip() for tag in bulk_new_tags.split(',') if tag.strip()]
-                
-                combined_tags = bulk_tags + new_tags
-                
-                for trade in imported_trades:
-                    existing_tags = trade.get('tags', [])
-                    trade['tags'] = list(set(existing_tags + combined_tags))
-                
-                # Add new tags to system
-                for tag in new_tags:
-                    data = add_tag_to_system(data, tag)
-                
-                st.success(f"Applied {len(combined_tags)} tags to all trades!")
-                st.rerun()
-        
-        with col3:
-            if st.button("💾 Save All Trades to Trade Day", type="primary"):
-                # Add all imported trades to current entry
-                existing_trades = current_entry['trade_day'].get('trades', [])
-                current_entry['trade_day']['trades'] = existing_trades + imported_trades
-                
-                # Save
-                if st.session_state.get('github_connected', False):
-                    if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
-                        st.success("✅ All trades saved to Trade Day!")
-                    else:
-                        save_local_data(data)
-                        st.success("💾 All trades saved locally!")
+            if st.session_state.get('github_connected', False):
+                if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                    st.success("✅ Commission updated!")
                 else:
                     save_local_data(data)
-                    st.success("💾 All trades saved locally!")
-                
-                # Clear imported trades
-                del st.session_state.imported_trades
-                st.rerun()
-        
-        # Individual trade editing
-        st.markdown("### 📝 Individual Trade Details")
-        
-        for i, trade in enumerate(imported_trades):
-            with st.expander(f"Trade {i+1}: {trade['description']}", expanded=False):
-                col1, col2 = st.columns([2, 1])
-                
-                with col1:
-                    # Editable description
-                    new_description = st.text_area(
-                        "Description",
-                        value=trade['description'],
-                        height=80,
-                        key=f"import_desc_{i}"
-                    )
-                    trade['description'] = new_description
-                    
-                    # Screenshot upload
-                    screenshot_file = st.file_uploader(
-                        "Add screenshot",
-                        type=['png', 'jpg', 'jpeg'],
-                        key=f"import_screenshot_{i}"
-                    )
-                    
-                    if screenshot_file:
-                        screenshot_caption = st.text_input(
-                            "Screenshot caption",
-                            key=f"import_caption_{i}"
-                        )
-                        
-                        if st.button(f"📤 Upload", key=f"upload_import_{i}"):
-                            if screenshot_caption.strip():
-                                # Handle screenshot upload
-                                screenshot_data = None
-                                if st.session_state.get('github_connected', False):
-                                    file_data = screenshot_file.getvalue()
-                                    timestamp = int(datetime.now().timestamp())
-                                    filename = f"imported_trade_{timestamp}_{screenshot_file.name}"
-                                    screenshot_url = st.session_state.github_storage.upload_screenshot(
-                                        file_data, filename, date_key
-                                    )
-                                    if screenshot_url:
-                                        screenshot_data = {'url': screenshot_url, 'caption': screenshot_caption}
-                                else:
-                                    screenshot_path = save_uploaded_file_local(screenshot_file, date_key, "imported_trade")
-                                    if screenshot_path:
-                                        screenshot_data = {'url': screenshot_path, 'caption': screenshot_caption}
-                                
-                                if screenshot_data:
-                                    trade['screenshot'] = screenshot_data
-                                    st.success("Screenshot added!")
-                                    st.rerun()
-                
-                with col2:
-                    # Tags for this specific trade
-                    trade_tags = st.multiselect(
-                        "Tags",
-                        options=all_tags,
-                        default=trade.get('tags', []),
-                        key=f"import_tags_{i}"
-                    )
-                    
-                    trade_new_tags = st.text_input(
-                        "New tags",
-                        placeholder="specific, setup-type",
-                        key=f"import_new_tags_{i}"
-                    )
-                    
-                    if trade_new_tags.strip():
-                        new_tags = [tag.strip() for tag in trade_new_tags.split(',') if tag.strip()]
-                        trade_tags.extend(new_tags)
-                        for tag in new_tags:
-                            data = add_tag_to_system(data, tag)
-                    
-                    trade['tags'] = list(set(trade_tags))
-                    
-                    # Outcome adjustment
-                    new_outcome = st.selectbox(
-                        "Outcome",
-                        options=["win", "loss", "pending"],
-                        index=["win", "loss", "pending"].index(trade.get('outcome', 'pending')),
-                        format_func=lambda x: {"win": "✅ Win", "loss": "❌ Loss", "pending": "⏳ Pending"}[x],
-                        key=f"import_outcome_{i}"
-                    )
-                    trade['outcome'] = new_outcome
-                    
-                    # Show trade details
-                    pnl_color = "green" if trade.get('pnl', 0) > 0 else "red" if trade.get('pnl', 0) < 0 else "gray"
-                    st.markdown(f"**P&L:** <span style='color: {pnl_color}; font-weight: bold;'>${trade.get('pnl', 0):.2f}</span>", unsafe_allow_html=True)
-                    st.markdown(f"**Symbol:** {trade.get('symbol', 'N/A')}")
-                    st.markdown(f"**Direction:** {trade.get('direction', 'N/A')}")
-        
-        # Cancel import
-        if st.button("❌ Cancel Import"):
-            del st.session_state.imported_trades
+                    st.success("💾 Commission updated locally!")
+            else:
+                save_local_data(data)
+                st.success("💾 Commission updated locally!")
             st.rerun()
     
-    # Market Observations Section
-    if not st.session_state.get('imported_trades'):  # Only show if not importing
-        st.markdown("---")
+    with col2:
+        st.markdown("**Trading Review Integration**")
+        st.markdown("Transfer today's P&L to Trading Review page")
+        
+        if st.button("🔄 Update Trading Review P&L", key="update_trading_review_pnl", type="primary"):
+            # Update the trading review P&L with net P&L from trade day
+            if 'trading' not in current_entry:
+                current_entry['trading'] = {}
+            
+            net_pnl_value = current_entry['trade_day']['session_analytics'].get('net_pnl', 0)
+            gross_pnl_value = current_entry['trade_day']['session_analytics'].get('gross_pnl', 0)
+            commission_value = current_entry['trade_day']['session_analytics'].get('daily_commission', 0)
+            
+            current_entry['trading']['pnl'] = net_pnl_value
+            current_entry['trading']['trade_day_sync'] = True
+            current_entry['trading']['gross_pnl'] = gross_pnl_value
+            current_entry['trading']['commissions'] = commission_value
+            
+            if st.session_state.get('github_connected', False):
+                if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                    st.success(f"✅ Trading Review P&L updated to ${net_pnl_value:.2f}!")
+                else:
+                    save_local_data(data)
+                    st.success(f"💾 Trading Review P&L updated to ${net_pnl_value:.2f} locally!")
+            else:
+                save_local_data(data)
+                st.success(f"💾 Trading Review P&L updated to ${net_pnl_value:.2f} locally!")
     
+    # ======== MANUAL ANALYTICS UPDATE SECTION ========
+    st.markdown("---")
+    st.subheader("✏️ Update Session Analytics")
+    
+    with st.expander("📝 Manual Analytics Entry", expanded=False):
+        st.markdown("**Update your trading session statistics:**")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            new_total_trades = st.number_input("Total Trades", min_value=0, value=total_trades, key="manual_total_trades")
+            new_winners = st.number_input("Winners", min_value=0, value=winners, key="manual_winners")
+            new_losers = st.number_input("Losers", min_value=0, value=losers, key="manual_losers")
+            new_break_even = st.number_input("Break-Even", min_value=0, value=break_even, key="manual_break_even")
+            new_avg_winner = st.number_input("Avg Winner ($)", value=avg_winner, format="%.2f", key="manual_avg_winner")
+            new_avg_loser = st.number_input("Avg Loser ($)", value=avg_loser, format="%.2f", key="manual_avg_loser")
+        
+        with col2:
+            new_largest_winner = st.number_input("Largest Winner ($)", value=analytics.get('largest_winner', 0), format="%.2f", key="manual_largest_winner")
+            new_largest_loser = st.number_input("Largest Loser ($)", value=analytics.get('largest_loser', 0), format="%.2f", key="manual_largest_loser")
+            new_avg_winner_duration = st.number_input("Avg Winner Duration (min)", min_value=0, value=analytics.get('avg_winner_duration', 0), key="manual_avg_winner_duration")
+            new_avg_loser_duration = st.number_input("Avg Loser Duration (min)", min_value=0, value=analytics.get('avg_loser_duration', 0), key="manual_avg_loser_duration")
+            new_gross_pnl = st.number_input("Gross P&L ($)", value=analytics.get('gross_pnl', 0), format="%.2f", key="manual_gross_pnl")
+        
+        if st.button("💾 Save Analytics", key="save_manual_analytics", type="primary"):
+            # Update all analytics
+            current_entry['trade_day']['session_analytics'] = {
+                'total_trades': new_total_trades,
+                'winners': new_winners,
+                'losers': new_losers,
+                'break_even': new_break_even,
+                'avg_winner': new_avg_winner,
+                'avg_loser': new_avg_loser,
+                'largest_winner': new_largest_winner,
+                'largest_loser': new_largest_loser,
+                'avg_winner_duration': new_avg_winner_duration,
+                'avg_loser_duration': new_avg_loser_duration,
+                'gross_pnl': new_gross_pnl,
+                'daily_commission': commission_input,
+                'net_pnl': new_gross_pnl - commission_input
+            }
+            
+            if st.session_state.get('github_connected', False):
+                if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                    st.success("✅ Session analytics updated!")
+                else:
+                    save_local_data(data)
+                    st.success("💾 Session analytics updated locally!")
+            else:
+                save_local_data(data)
+                st.success("💾 Session analytics updated locally!")
+            st.rerun()
+    
+    # ======== EXISTING MARKET OBSERVATIONS SECTION ========
+    st.markdown("---")
     st.subheader("🔍 Market Observations")
     market_observations = st.text_area(
         "What do you see in the markets today?",
@@ -1586,139 +1581,42 @@ elif page == "📈 Trade Day":
         if st.session_state.get('github_connected', False):
             if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
                 st.success("✅ Market observations saved!")
-        else:
-            save_local_data(data)
-            st.success("💾 Market observations saved!")
-    
-    st.markdown("---")
-    
-    # Add New Trade Section (Manual Entry)
-    st.subheader("➕ Add New Trade (Manual Entry)")
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        # Trade description
-        trade_description = st.text_area(
-            "Trade Description",
-            placeholder="Describe your trade setup, entry reasoning, target, stop loss, etc.",
-            height=100,
-            key="new_trade_description"
-        )
-        
-        # Screenshot upload for trade
-        trade_screenshot = st.file_uploader(
-            "Trade Screenshot",
-            type=['png', 'jpg', 'jpeg'],
-            help="Upload entry chart, setup screenshot, or other relevant image",
-            key="new_trade_screenshot"
-        )
-        
-        screenshot_caption = ""
-        if trade_screenshot:
-            screenshot_caption = st.text_input(
-                "Screenshot Caption",
-                placeholder="Describe this screenshot...",
-                key="new_trade_screenshot_caption"
-            )
-    
-    with col2:
-        # Tags section
-        st.markdown("**Tags:**")
-        
-        # Get existing tags
-        all_tags = get_all_tags(data)
-        
-        # Multi-select for existing tags
-        selected_tags = st.multiselect(
-            "Select existing tags",
-            options=all_tags,
-            key="trade_tags_select"
-        )
-        
-        # Add new tags
-        new_tags_input = st.text_input(
-            "Add new tags (comma-separated)",
-            placeholder="scalp, breakout, TSLA",
-            key="new_tags_input"
-        )
-        
-        # Parse new tags
-        new_tags = []
-        if new_tags_input.strip():
-            new_tags = [tag.strip() for tag in new_tags_input.split(',') if tag.strip()]
-            
-        # Combine all tags
-        all_trade_tags = selected_tags + new_tags
-        
-        # Trade outcome
-        trade_outcome = st.selectbox(
-            "Trade Outcome",
-            options=["pending", "win", "loss"],
-            format_func=lambda x: {
-                "pending": "⏳ Pending", 
-                "win": "✅ Win", 
-                "loss": "❌ Loss"
-            }[x],
-            key="trade_outcome"
-        )
-    
-    # Add trade button
-    if st.button("🚀 Add Trade", type="primary", key="add_trade"):
-        if not trade_description.strip():
-            st.warning("⚠️ Please add a trade description!")
-        else:
-            # Handle screenshot upload
-            screenshot_data = None
-            if trade_screenshot and screenshot_caption.strip():
-                if st.session_state.get('github_connected', False):
-                    # Upload to GitHub
-                    file_data = trade_screenshot.getvalue()
-                    timestamp = int(datetime.now().timestamp())
-                    filename = f"trade_{timestamp}_{trade_screenshot.name}"
-                    screenshot_url = st.session_state.github_storage.upload_screenshot(
-                        file_data, filename, date_key
-                    )
-                    if screenshot_url:
-                        screenshot_data = {'url': screenshot_url, 'caption': screenshot_caption}
-                else:
-                    # Save locally
-                    screenshot_path = save_uploaded_file_local(trade_screenshot, date_key, "trade")
-                    if screenshot_path:
-                        screenshot_data = {'url': screenshot_path, 'caption': screenshot_caption}
-            
-            # Add new tags to system
-            for tag in new_tags:
-                data = add_tag_to_system(data, tag)
-            
-            # Create trade
-            new_trade = create_new_trade(
-                trade_description, 
-                all_trade_tags, 
-                trade_outcome, 
-                screenshot_data
-            )
-            
-            # Add trade to current entry
-            if 'trades' not in current_entry['trade_day']:
-                current_entry['trade_day']['trades'] = []
-            
-            current_entry['trade_day']['trades'].append(new_trade)
-            current_entry['trade_day']['market_observations'] = market_observations
-            
-            # Save
-            if st.session_state.get('github_connected', False):
-                if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
-                    st.success("✅ Trade added and saved to GitHub!")
-                else:
-                    save_local_data(data)
-                    st.success("💾 Trade added and saved locally!")
             else:
                 save_local_data(data)
-                st.success("💾 Trade added and saved locally!")
-            
-            # Clear the form by rerunning
-            st.rerun()
+                st.success("💾 Market observations saved locally!")
+        else:
+            save_local_data(data)
+            st.success("💾 Market observations saved locally!")
+    
+    # Quick populate button for your example data
+    st.markdown("---")
+    if st.button("🎯 Load Example Analytics", key="load_example", help="Load the example analytics data you provided"):
+        current_entry['trade_day']['session_analytics'] = {
+            'total_trades': 15,
+            'winners': 9,
+            'losers': 4,
+            'break_even': 2,
+            'avg_winner': 45.50,
+            'avg_loser': -28.75,
+            'largest_winner': 89.25,
+            'largest_loser': -52.00,
+            'avg_winner_duration': 12,
+            'avg_loser_duration': 8,
+            'gross_pnl': 312.50,
+            'daily_commission': 14.00,
+            'net_pnl': 298.50
+        }
+        
+        if st.session_state.get('github_connected', False):
+            if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                st.success("✅ Example analytics loaded!")
+            else:
+                save_local_data(data)
+                st.success("💾 Example analytics loaded locally!")
+        else:
+            save_local_data(data)
+            st.success("💾 Example analytics loaded locally!")
+        st.rerun()
     
     st.markdown("---")
     
