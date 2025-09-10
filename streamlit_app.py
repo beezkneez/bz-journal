@@ -1577,64 +1577,197 @@ elif page == "📈 Trade Day":
         for i, trade in enumerate(existing_trades):
             with st.expander(f"Trade {i+1}: {trade['description'][:50]}..." if len(trade['description']) > 50 else f"Trade {i+1}: {trade['description']}"):
                 
-                col1, col2 = st.columns([3, 1])
+                # Check if this trade is being edited
+                edit_key = f"edit_trade_{trade['id']}"
+                is_editing = st.session_state.get(edit_key, False)
                 
-                with col1:
-                    st.markdown(f"**Time:** {trade['timestamp']}")
-                    st.markdown(f"**Description:** {trade['description']}")
+                if not is_editing:
+                    # Display mode
+                    col1, col2 = st.columns([3, 1])
                     
-                    # Display tags
-                    if trade.get('tags'):
-                        tags_html = ""
-                        for tag in trade['tags']:
-                            tags_html += f'<span class="tag-chip">{tag}</span>'
-                        st.markdown(f"**Tags:** {tags_html}", unsafe_allow_html=True)
+                    with col1:
+                        st.markdown(f"**Time:** {trade['timestamp']}")
+                        st.markdown(f"**Description:** {trade['description']}")
+                        
+                        # Display tags
+                        if trade.get('tags'):
+                            tags_html = ""
+                            for tag in trade['tags']:
+                                tags_html += f'<span class="tag-chip">{tag}</span>'
+                            st.markdown(f"**Tags:** {tags_html}", unsafe_allow_html=True)
+                        else:
+                            st.markdown("**Tags:** None")
+                        
+                        # Display outcome with styling
+                        outcome = trade.get('outcome', 'pending')
+                        outcome_colors = {
+                            'win': ('#00ff00', '✅'),
+                            'loss': ('#ff0000', '❌'), 
+                            'pending': ('#ffff00', '⏳')
+                        }
+                        color, icon = outcome_colors.get(outcome, ('#ffffff', '❓'))
+                        st.markdown(f"**Outcome:** <span style='color: {color}; font-weight: bold;'>{icon} {outcome.upper()}</span>", unsafe_allow_html=True)
+                        
+                        # Display screenshot if exists
+                        if trade.get('screenshot'):
+                            st.markdown(f"**Screenshot:** {trade['screenshot']['caption']}")
+                            display_image_full_size(trade['screenshot']['url'], trade['screenshot']['caption'])
                     
-                    # Display outcome with styling
-                    outcome = trade.get('outcome', 'pending')
-                    outcome_colors = {
-                        'win': ('#00ff00', '✅'),
-                        'loss': ('#ff0000', '❌'), 
-                        'pending': ('#ffff00', '⏳')
-                    }
-                    color, icon = outcome_colors.get(outcome, ('#ffffff', '❓'))
-                    st.markdown(f"**Outcome:** <span style='color: {color}; font-weight: bold;'>{icon} {outcome.upper()}</span>", unsafe_allow_html=True)
-                    
-                    # Display screenshot if exists
-                    if trade.get('screenshot'):
-                        st.markdown(f"**Screenshot:** {trade['screenshot']['caption']}")
-                        display_image_full_size(trade['screenshot']['url'], trade['screenshot']['caption'])
-                
-                with col2:
-                    # Edit outcome
-                    new_outcome = st.selectbox(
-                        "Update Outcome",
-                        options=["pending", "win", "loss"],
-                        index=["pending", "win", "loss"].index(outcome),
-                        format_func=lambda x: {"pending": "⏳ Pending", "win": "✅ Win", "loss": "❌ Loss"}[x],
-                        key=f"outcome_update_{trade['id']}"
-                    )
-                    
-                    if new_outcome != outcome:
-                        if st.button(f"💾 Update", key=f"update_outcome_{trade['id']}"):
-                            trade['outcome'] = new_outcome
+                    with col2:
+                        # Edit button
+                        if st.button(f"✏️ Edit", key=f"start_edit_{trade['id']}"):
+                            st.session_state[edit_key] = True
+                            st.rerun()
+                        
+                        # Quick outcome update (kept for convenience)
+                        new_outcome = st.selectbox(
+                            "Quick Update Outcome",
+                            options=["pending", "win", "loss"],
+                            index=["pending", "win", "loss"].index(outcome),
+                            format_func=lambda x: {"pending": "⏳ Pending", "win": "✅ Win", "loss": "❌ Loss"}[x],
+                            key=f"outcome_update_{trade['id']}"
+                        )
+                        
+                        if new_outcome != outcome:
+                            if st.button(f"💾 Update", key=f"update_outcome_{trade['id']}"):
+                                trade['outcome'] = new_outcome
+                                
+                                # Save updated trade
+                                if st.session_state.get('github_connected', False):
+                                    st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
+                                save_local_data(data)
+                                st.success("Trade outcome updated!")
+                                st.rerun()
+                        
+                        # Delete trade button
+                        if st.button(f"🗑️ Delete", key=f"delete_trade_{trade['id']}"):
+                            current_entry['trade_day']['trades'].pop(i)
                             
-                            # Save updated trade
                             if st.session_state.get('github_connected', False):
                                 st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
                             save_local_data(data)
-                            st.success("Trade outcome updated!")
+                            st.success("Trade deleted!")
                             st.rerun()
+                
+                else:
+                    # Edit mode
+                    st.markdown("### ✏️ **Edit Trade**")
                     
-                    # Delete trade button
-                    if st.button(f"🗑️ Delete", key=f"delete_trade_{trade['id']}"):
-                        current_entry['trade_day']['trades'].pop(i)
+                    with st.form(key=f"edit_trade_form_{trade['id']}"):
+                        col1, col2 = st.columns([2, 1])
                         
-                        if st.session_state.get('github_connected', False):
-                            st.session_state.github_storage.save_journal_entry(date_key, current_entry, data)
-                        save_local_data(data)
-                        st.success("Trade deleted!")
-                        st.rerun()
+                        with col1:
+                            # Editable description
+                            edit_description = st.text_area(
+                                "Trade Description",
+                                value=trade.get('description', ''),
+                                height=100,
+                                key=f"edit_desc_{trade['id']}"
+                            )
+                            
+                            # Screenshot caption editing (if screenshot exists)
+                            edit_screenshot_caption = ""
+                            if trade.get('screenshot'):
+                                edit_screenshot_caption = st.text_input(
+                                    "Screenshot Caption",
+                                    value=trade['screenshot'].get('caption', ''),
+                                    key=f"edit_caption_{trade['id']}"
+                                )
+                                
+                                # Show current screenshot
+                                st.markdown("**Current Screenshot:**")
+                                display_image_full_size(trade['screenshot']['url'], trade['screenshot']['caption'])
+                        
+                        with col2:
+                            # Get current tags for editing
+                            current_tags = trade.get('tags', [])
+                            all_tags = get_all_tags(data)
+                            
+                            # Multi-select for existing tags (pre-select current tags)
+                            edit_selected_tags = st.multiselect(
+                                "Select existing tags",
+                                options=all_tags,
+                                default=current_tags,
+                                key=f"edit_tags_select_{trade['id']}"
+                            )
+                            
+                            # Add new tags
+                            edit_new_tags_input = st.text_input(
+                                "Add new tags (comma-separated)",
+                                placeholder="scalp, breakout, TSLA",
+                                key=f"edit_new_tags_{trade['id']}"
+                            )
+                            
+                            # Parse new tags
+                            edit_new_tags = []
+                            if edit_new_tags_input.strip():
+                                edit_new_tags = [tag.strip() for tag in edit_new_tags_input.split(',') if tag.strip()]
+                            
+                            # Combine all tags
+                            edit_all_trade_tags = edit_selected_tags + edit_new_tags
+                            
+                            # Trade outcome
+                            edit_trade_outcome = st.selectbox(
+                                "Trade Outcome",
+                                options=["pending", "win", "loss"],
+                                index=["pending", "win", "loss"].index(trade.get('outcome', 'pending')),
+                                format_func=lambda x: {
+                                    "pending": "⏳ Pending", 
+                                    "win": "✅ Win", 
+                                    "loss": "❌ Loss"
+                                }[x],
+                                key=f"edit_outcome_{trade['id']}"
+                            )
+                        
+                        # Form buttons
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            save_changes = st.form_submit_button("💾 Save Changes", type="primary")
+                        with col2:
+                            cancel_edit = st.form_submit_button("❌ Cancel")
+                        
+                        if save_changes:
+                            if not edit_description.strip():
+                                st.error("⚠️ Trade description cannot be empty!")
+                            else:
+                                # Add new tags to system
+                                for tag in edit_new_tags:
+                                    data = add_tag_to_system(data, tag)
+                                
+                                # Update the trade
+                                trade['description'] = edit_description
+                                trade['tags'] = edit_all_trade_tags
+                                trade['outcome'] = edit_trade_outcome
+                                
+                                # Update screenshot caption if it exists
+                                if trade.get('screenshot') and edit_screenshot_caption.strip():
+                                    trade['screenshot']['caption'] = edit_screenshot_caption
+                                
+                                # Save changes
+                                try:
+                                    if st.session_state.get('github_connected', False):
+                                        if st.session_state.github_storage.save_journal_entry(date_key, current_entry, data):
+                                            st.success("✅ Trade updated and saved to GitHub!")
+                                        else:
+                                            save_local_data(data)
+                                            st.success("💾 Trade updated and saved locally!")
+                                    else:
+                                        save_local_data(data)
+                                        st.success("💾 Trade updated and saved locally!")
+                                    
+                                    # Exit edit mode
+                                    st.session_state[edit_key] = False
+                                    st.rerun()
+                                    
+                                except Exception as e:
+                                    st.error(f"❌ Error saving changes: {str(e)}")
+                                    save_local_data(data)
+                                    st.warning("⚠️ Saved to local backup")
+                        
+                        if cancel_edit:
+                            # Exit edit mode without saving
+                            st.session_state[edit_key] = False
+                            st.rerun()
     else:
         st.info("No trades recorded for today. Add your first trade above!")
 
