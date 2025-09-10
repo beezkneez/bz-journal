@@ -19,7 +19,7 @@
       ]
     },
     "trading": {
-      "pnl": 320.0000000000073,
+      "pnl": 322.0000000000073,
       "process_grade": "A",
       "grade_reasoning": "",
       "general_comments": "",
@@ -37,7 +37,10 @@
           "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trading_1757539247_Screenshot 2025-09-10 152012.png",
           "caption": "Gap fill day"
         }
-      ]
+      ],
+      "trade_log_sync": true,
+      "gross_pnl": 420.0000000000073,
+      "commissions": 98.0
     },
     "evening": {},
     "rules": [
