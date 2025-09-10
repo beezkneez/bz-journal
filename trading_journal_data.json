@@ -20,9 +20,9 @@
     },
     "trading": {
       "pnl": 322.0000000000073,
-      "process_grade": "A",
-      "grade_reasoning": "",
-      "general_comments": "",
+      "process_grade": "B",
+      "grade_reasoning": "I felt I traded well today  - more patient and less angry when I took a loss, realizing I can make back a loss pretty quickly with one good entry. ",
+      "general_comments": "Originally I was leanign more bullish because we took out PW Hi in the overnight and PM Hi was a close targer, but when we failed to take out onHi or spend any time aboive the opening 5 minute range, I was leaning heavy Bearish - my last trade of the day would have been nice to hold longer but I had to take off to golf and I had a good morning so that was an easy one to just cut and walk away",
       "screenshot_notes": "",
       "rule_compliance": {
         "rule_0": true,
@@ -30,17 +30,14 @@
         "rule_2": true,
         "rule_3": true
       },
-      "what_could_improve": "",
-      "tomorrow_focus": "",
+      "what_could_improve": "Avoided some breakout longs, but in easier to say that now, during the session they were really enticing - but I cut them short so just another trade",
+      "tomorrow_focus": "I will be at stn 10 tomorrow, so trade small and stay patient",
       "trading_screenshots": [
         {
           "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trading_1757539247_Screenshot 2025-09-10 152012.png",
           "caption": "Gap fill day"
         }
-      ],
-      "trade_log_sync": true,
-      "gross_pnl": 420.0000000000073,
-      "commissions": 98.0
+      ]
     },
     "evening": {},
     "rules": [
