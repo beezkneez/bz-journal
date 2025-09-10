@@ -61,6 +61,19 @@
             "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trade_1757539821_F.US.ENQU25.2025-09-10_133653.085.png",
             "caption": "1st trade of day"
           }
+        },
+        {
+          "id": "d0290f0e-9c09-4c59-b0d8-79839e2ca3da",
+          "timestamp": "2025-09-10 21:36:51",
+          "description": "We took out the PPI low and I thought we were going to retrace back to take out the highs, It went 21 pts into profit, pulled back I added and then it dumped hard and stoppped me out.  I kept my cool and waited.",
+          "tags": [
+            "long-continuation"
+          ],
+          "outcome": "loss",
+          "screenshot": {
+            "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trade_1757540211_F.US.ENQU25.2025-09-10_134602.199.png",
+            "caption": "trade 2"
+          }
         }
       ]
     },
@@ -747,6 +760,7 @@
   "tags": [
     "OD-continuation",
     "absorption",
+    "long-continuation",
     "test"
   ]
 }
