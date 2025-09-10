@@ -11,38 +11,6 @@ import base64
 from PIL import Image
 import io
 import requests
-import re
-
-# Initialize PDF variables immediately to prevent NameError
-PDF_LIBS_AVAILABLE = False
-PDF_LIB_STATUS = "Not initialized"
-
-# Test PDF library availability
-try:
-    import PyPDF2
-    PDF_LIBS_AVAILABLE = True
-    PDF_LIB_STATUS = "PyPDF2 available"
-except ImportError:
-    try:
-        import pdfplumber
-        PDF_LIBS_AVAILABLE = True
-        PDF_LIB_STATUS = "pdfplumber available"  
-    except ImportError:
-        PDF_LIB_STATUS = "No PDF libraries found"
-
-# Debug: Test imports manually
-st.write("Debug: Testing PDF imports...")
-try:
-    import PyPDF2
-    st.success("PyPDF2 imported successfully")
-except ImportError as e:
-    st.error(f"PyPDF2 import failed: {e}")
-
-try:
-    import pdfplumber  
-    st.success("pdfplumber imported successfully")
-except ImportError as e:
-    st.error(f"pdfplumber import failed: {e}")
 
 # Set page config
 st.set_page_config(
@@ -316,159 +284,35 @@ def display_image_full_size(image_source, caption="Screenshot"):
             except:
                 st.error(f"Could not load image: {image_source}")
 
-def parse_pdf_trade_log(pdf_content):
-    """Parse AMP Futures PDF trade log - ALWAYS returns (trades, commissions, error)"""
-    try:
-        # Try to import PDF libraries
-        try:
-            import PyPDF2
-            use_pypdf2 = True
-        except ImportError:
-            try:
-                import pdfplumber
-                use_pypdf2 = False
-            except ImportError:
-                return None, 0.0, "PDF parsing libraries not available. Please install PyPDF2 or pdfplumber."
-        
-        # Extract text from PDF
-        if use_pypdf2:
-            # Use PyPDF2
-            from io import BytesIO
-            pdf_reader = PyPDF2.PdfReader(BytesIO(pdf_content))
-            text = ""
-            for page in pdf_reader.pages:
-                text += page.extract_text() + "\n"
-        else:
-            # Use pdfplumber
-            import pdfplumber
-            from io import BytesIO
-            with pdfplumber.open(BytesIO(pdf_content)) as pdf:
-                text = ""
-                for page in pdf.pages:
-                    text += page.extract_text() + "\n"
-        
-        # Parse the extracted text for trade data
-        trades = []
-        commissions = 0.0
-        
-        # Look for trade confirmation sections
-        lines = text.split('\n')
-        
-        # Common patterns for AMP Futures format
-        trade_patterns = [
-            r'(\d{2}/\d{2}/\d{4})\s+(\d{2}:\d{2}:\d{2})\s+([A-Z\.]+)\s+(Buy|Sell)\s+(\d+)\s+([0-9,]+\.?\d*)\s*(Open|Close)',
-            r'(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})\s+([A-Z\.]+)\s+(Buy|Sell)\s+(\d+)\s+([0-9,]+\.?\d*)\s*(Open|Close)',
-        ]
-        
-        # Look for commission/fees
-        commission_patterns = [
-            r'Total\s+Commission[:\s]+\$?([0-9,]+\.?\d*)',
-            r'Commission[:\s]+\$?([0-9,]+\.?\d*)',
-            r'Fees[:\s]+\$?([0-9,]+\.?\d*)',
-        ]
-        
-        for line in lines:
-            line = line.strip()
-            
-            # Extract commissions
-            for pattern in commission_patterns:
-                match = re.search(pattern, line, re.IGNORECASE)
-                if match:
-                    try:
-                        commission_value = float(match.group(1).replace(',', ''))
-                        commissions += commission_value
-                    except:
-                        pass
-            
-            # Extract trades
-            for pattern in trade_patterns:
-                match = re.search(pattern, line)
-                if match:
-                    try:
-                        date_str = match.group(1)
-                        time_str = match.group(2)
-                        symbol = match.group(3)
-                        buysell = match.group(4)
-                        quantity = int(match.group(5))
-                        price = float(match.group(6).replace(',', ''))
-                        openclose = match.group(7) if len(match.groups()) >= 7 else 'Unknown'
-                        
-                        # Convert date format if needed
-                        if '/' in date_str:
-                            # MM/DD/YYYY format
-                            month, day, year = date_str.split('/')
-                            formatted_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-                        else:
-                            # Already in YYYY-MM-DD format
-                            formatted_date = date_str
-                        
-                        datetime_str = f"{formatted_date} {time_str}"
-                        
-                        trade = {
-                            'DateTime': datetime_str,
-                            'Symbol': symbol,
-                            'BuySell': buysell,
-                            'Quantity': quantity,
-                            'FillPrice': price,
-                            'OrderType': 'Market',  # Default for PDF parsing
-                            'OpenClose': openclose,
-                            'PositionQuantity': 0  # Will be calculated during analysis
-                        }
-                        
-                        trades.append(trade)
-                        
-                    except Exception as e:
-                        # Skip malformed lines
-                        continue
-        
-        if not trades:
-            return None, 0.0, "No trades found in PDF. Please check if this is an AMP Futures trading statement."
-        
-        return trades, commissions, None
-        
-    except Exception as e:
-        return None, 0.0, f"Error parsing PDF: {str(e)}"
-
-def parse_trade_log(file_content, is_pdf=False, pdf_content=None):
+def parse_trade_log(file_content):
     """Parse uploaded trade log file"""
     try:
-        if is_pdf and pdf_content:
-            # Parse PDF content
-            trades, commissions, error = parse_pdf_trade_log(pdf_content)
-            if error:
-                return None, 0.0, error
-            if trades:
-                return trades, commissions, None
-            else:
-                return None, 0.0, "No trades found in PDF. Please check if this is an AMP Futures trading statement."
-        else:
-            # Parse text content (CSV/TSV)
-            lines = file_content.strip().split('\n')
-            if len(lines) < 2:
-                return None, 0.0, "File appears to be empty or invalid"
-            
-            # Try to detect delimiter
-            header_line = lines[0]
-            delimiter = '\t' if '\t' in header_line else ',' if ',' in header_line else None
-            
-            if not delimiter:
-                return None, 0.0, "Could not detect file format (expected CSV or TSV)"
-            
-            headers = header_line.split(delimiter)
-            trades = []
-            
-            for i, line in enumerate(lines[1:], 1):
-                if line.strip():
-                    values = line.split(delimiter)
-                    if len(values) >= len(headers):
-                        trade = {}
-                        for j, header in enumerate(headers):
-                            trade[header] = values[j] if j < len(values) else ''
-                        trades.append(trade)
-            
-            return trades, 0.0, None
+        lines = file_content.strip().split('\n')
+        if len(lines) < 2:
+            return None, "File appears to be empty or invalid"
+        
+        # Try to detect delimiter
+        header_line = lines[0]
+        delimiter = '\t' if '\t' in header_line else ',' if ',' in header_line else None
+        
+        if not delimiter:
+            return None, "Could not detect file format (expected CSV or TSV)"
+        
+        headers = header_line.split(delimiter)
+        trades = []
+        
+        for i, line in enumerate(lines[1:], 1):
+            if line.strip():
+                values = line.split(delimiter)
+                if len(values) >= len(headers):
+                    trade = {}
+                    for j, header in enumerate(headers):
+                        trade[header] = values[j] if j < len(values) else ''
+                    trades.append(trade)
+        
+        return trades, None
     except Exception as e:
-        return None, 0.0, f"Error parsing file: {str(e)}"
+        return None, f"Error parsing file: {str(e)}"
 
 def analyze_trades(trades):
     """Comprehensive trade analysis with winner/loser calculations"""
@@ -789,16 +633,6 @@ if 'trade_log_action' not in st.session_state:
 # Main header - UPDATED VERSION TO 7.3
 st.markdown('<h1 class="main-header">📊 Trading Journal v7.3</h1>', unsafe_allow_html=True)
 
-# PDF Library Status Display
-if not PDF_LIBS_AVAILABLE:
-    st.warning(f"⚠️ PDF Support: {PDF_LIB_STATUS}")
-    with st.expander("📄 PDF Library Installation Help"):
-        st.write("**To enable PDF parsing, install one of these libraries:**")
-        st.code("pip install PyPDF2")
-        # ... rest of the section
-else:
-    st.success(f"✅ PDF Support: {PDF_LIB_STATUS}")
-
 # GitHub connection check and auto-setup
 if hasattr(st, 'secrets') and 'github' in st.secrets:
     # Auto-connect using secrets
@@ -808,24 +642,6 @@ if hasattr(st, 'secrets') and 'github' in st.secrets:
             st.session_state.github_token = st.secrets.github.token
             st.session_state.repo_owner = st.secrets.github.owner
             st.session_state.repo_name = st.secrets.github.repo
-
-# PDF Library Status Display
-# if not PDF_LIBS_AVAILABLE:
-  #   st.warning(f"⚠️ PDF Support: {PDF_LIB_STATUS}")
-    # with st.expander("📄 PDF Library Installation Help"):
-        # st.write("**To enable PDF parsing, install one of these libraries:**")
-        # st.code("pip install PyPDF2")
-        # st.write("**OR**")
-        # st.code("pip install pdfplumber")
-        # st.write("**OR install both:**")
-        # st.code("pip install PyPDF2 pdfplumber")
-        # st.write("**After installation, restart Streamlit.**")
-        
-        # st.write("**If you're using Streamlit Cloud or a hosted environment:**")
-        # st.write("Add the library to your requirements.txt file:")
-        # st.code("PyPDF2==3.0.1\npdfplumber==0.7.6")
-# else:
-    # st.success(f"✅ PDF Support: {PDF_LIB_STATUS}")
 
 # Load data (GitHub first, then local fallback)
 if st.session_state.get('github_connected', False):
@@ -1448,7 +1264,7 @@ elif page == "📊 Calendar View":
     with col4:
         st.markdown("💡 **Click View/Add to edit entries**")
 
-# ======== TRADE LOG ANALYSIS PAGE WITH PDF SUPPORT ========
+# ======== TRADE LOG ANALYSIS PAGE ========
 elif page == "📊 Trade Log Analysis":
     st.markdown('<div class="section-header">📊 Trade Log Analysis</div>', unsafe_allow_html=True)
     
@@ -1476,7 +1292,7 @@ elif page == "📊 Trade Log Analysis":
                 st.session_state.trade_analysis = existing_trade_log.get('analysis', {})
                 st.rerun()
         with col2:
-            if st.button("🔄 Replace with New Upload", key="replace_upload"):
+            if st.button("📄 Replace with New Upload", key="replace_upload"):
                 st.session_state.trade_log_action = "upload_new"
                 st.session_state.trade_analysis = None
                 st.session_state.trade_data = None
@@ -1491,25 +1307,19 @@ elif page == "📊 Trade Log Analysis":
         
     elif has_existing_data and st.session_state.trade_log_action == "upload_new":
         # User chose to upload new - show upload interface
-        st.subheader("🔄 Upload New Trade Log")
+        st.subheader("📄 Upload New Trade Log")
         st.info("Upload a new file to replace the existing trade log data.")
         
-        # UPDATED FILE UPLOADER WITH PDF SUPPORT
         uploaded_file = st.file_uploader(
-            f"Upload trade log for {selected_date.strftime('%B %d, %Y')} (CSV, TSV, or PDF format)",
-            type=['txt', 'csv', 'tsv', 'pdf'],  # ADDED PDF SUPPORT
-            help="Upload trade logs from your broker (e.g., TradeActivityLogExport files or AMP Futures PDF statements)",
+            f"Upload trade log for {selected_date.strftime('%B %d, %Y')} (CSV or TSV format)",
+            type=['txt', 'csv', 'tsv'],
+            help="Upload trade logs from your broker (e.g., TradeActivityLogExport files)",
             key=f"trade_log_upload_new_{date_key}"
         )
         
         if uploaded_file is not None:
-            # Check if it's a PDF
-            if uploaded_file.type == "application/pdf":
-                pdf_content = uploaded_file.read()
-                trades, commissions, error = parse_trade_log(None, is_pdf=True, pdf_content=pdf_content)
-            else:
-                file_content = uploaded_file.read().decode('utf-8')
-                trades, commissions, error = parse_trade_log(file_content)
+            file_content = uploaded_file.read().decode('utf-8')
+            trades, error = parse_trade_log(file_content)
             
             if error:
                 st.error(f"Error parsing file: {error}")
@@ -1517,10 +1327,6 @@ elif page == "📊 Trade Log Analysis":
                 st.session_state.trade_data = trades
                 st.session_state.trade_analysis = analyze_trades(trades)
                 st.success(f"✅ Successfully parsed {len(trades)} trade records for {selected_date.strftime('%B %d, %Y')}!")
-                
-                # Auto-fill commission if PDF provided it
-                if commissions > 0:
-                    st.info(f"💡 Commission automatically extracted from PDF: ${commissions:.2f}")
         
     elif has_existing_data and st.session_state.trade_log_action is None:
         # Default state - auto-load existing data
@@ -1531,44 +1337,23 @@ elif page == "📊 Trade Log Analysis":
         # No existing data - show upload interface
         st.subheader("📄 Upload Trade Log")
         
-        # Show PDF support status
-        # if PDF_LIBS_AVAILABLE:
-            # st.success(f"✅ PDF support enabled ({PDF_LIB_STATUS})")
-        # else:
-            # st.warning(f"⚠️ PDF support disabled ({PDF_LIB_STATUS})")
-            # st.info("Install PyPDF2 or pdfplumber to enable PDF parsing: `pip install PyPDF2 pdfplumber`")
+        uploaded_file = st.file_uploader(
+            f"Upload trade log for {selected_date.strftime('%B %d, %Y')} (CSV or TSV format)",
+            type=['txt', 'csv', 'tsv'],
+            help="Upload trade logs from your broker (e.g., TradeActivityLogExport files)",
+            key=f"trade_log_upload_{date_key}"
+        )
         
-        # UPDATED FILE UPLOADER WITH PDF SUPPORT
-        # file_types = ['txt', 'csv', 'tsv']
-        # if PDF_LIBS_AVAILABLE:
-            # file_types.append('pdf')
-        
-        # uploaded_file = st.file_uploader(
-            # f"Upload trade log for {selected_date.strftime('%B %d, %Y')} ({'CSV, TSV, or PDF' if PDF_LIBS_AVAILABLE else 'CSV or TSV'} format)",
-            # type=file_types,
-            # help="Upload trade logs from your broker (e.g., TradeActivityLogExport files or AMP Futures PDF statements)",
-            # key=f"trade_log_upload_{date_key}"
-        # )
-        
-        # if uploaded_file is not None:
-            # Check if it's a PDF
-            # if uploaded_file.type == "application/pdf":
-                # pdf_content = uploaded_file.read()
-                # trades, commissions, error = parse_trade_log(None, is_pdf=True, pdf_content=pdf_content)
-            # else:
-                # file_content = uploaded_file.read().decode('utf-8')
-                # trades, commissions, error = parse_trade_log(file_content)
+        if uploaded_file is not None:
+            file_content = uploaded_file.read().decode('utf-8')
+            trades, error = parse_trade_log(file_content)
             
-            # if error:
-                # st.error(f"Error parsing file: {error}")
-            # else:
-                # st.session_state.trade_data = trades
-                # st.session_state.trade_analysis = analyze_trades(trades)
-                # st.success(f"✅ Successfully parsed {len(trades)} trade records for {selected_date.strftime('%B %d, %Y')}!")
-                
-                # Auto-fill commission if PDF provided it
-                # if commissions > 0:
-                    # st.info(f"💡 Commission automatically extracted from PDF: ${commissions:.2f}")
+            if error:
+                st.error(f"Error parsing file: {error}")
+            else:
+                st.session_state.trade_data = trades
+                st.session_state.trade_analysis = analyze_trades(trades)
+                st.success(f"✅ Successfully parsed {len(trades)} trade records for {selected_date.strftime('%B %d, %Y')}!")
     
     # Display analysis if available
     if st.session_state.trade_analysis:
@@ -1581,19 +1366,13 @@ elif page == "📊 Trade Log Analysis":
         # Get saved commission from existing data or allow input
         saved_commissions = existing_trade_log.get('commissions', 0.0) if has_existing_data else 0.0
         
-        # Auto-populate commission if extracted from PDF
-        if hasattr(st.session_state, 'extracted_commissions') and st.session_state.extracted_commissions > 0:
-            default_commission = st.session_state.extracted_commissions
-        else:
-            default_commission = saved_commissions
-        
         commission_input = st.number_input(
             "Total Commissions for Session ($)",
             min_value=0.0,
-            value=default_commission,
+            value=saved_commissions,
             step=0.01,
             format="%.2f",
-            help="Enter total commission costs for this trading session (auto-filled from PDF if available)"
+            help="Enter total commission costs for this trading session"
         )
         
         # Calculate net P&L
@@ -1684,7 +1463,7 @@ elif page == "📊 Trade Log Analysis":
                     st.success(f"💾 Trade analysis saved locally for {selected_date.strftime('%B %d, %Y')}!")
         
         with col2:
-            if st.button("🔄 Update Trading Review P&L"):
+            if st.button("📄 Update Trading Review P&L"):
                 # Update the trading review P&L with net P&L from trade log
                 if 'trading' not in current_entry:
                     current_entry['trading'] = {}
@@ -2090,7 +1869,7 @@ elif page == "📈 Trading Review":
         if current_entry['trading'].get('trade_log_sync', False):
             gross_pnl = current_entry['trading'].get('gross_pnl', 0)
             commissions = current_entry['trading'].get('commissions', 0)
-            st.info(f"🔄 P&L synced from Trade Log: Gross ${gross_pnl:.2f} - Commissions ${commissions:.2f} = Net ${pnl:.2f}")
+            st.info(f"📄 P&L synced from Trade Log: Gross ${gross_pnl:.2f} - Commissions ${commissions:.2f} = Net ${pnl:.2f}")
         
         process_grade = st.selectbox(
             "Grade Your Process (A-F)",
