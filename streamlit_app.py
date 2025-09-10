@@ -379,7 +379,12 @@ def get_trade_statistics(data):
     total_trades = len(all_trades)
     win_trades = [t for t in all_trades if t.get('outcome') == 'win']
     loss_trades = [t for t in all_trades if t.get('outcome') == 'loss']
+    break_even_trades = [t for t in all_trades if t.get('outcome') == 'break-even']
     pending_trades = [t for t in all_trades if t.get('outcome') == 'pending']
+    
+    # Win rate calculation (exclude break-evens and pending from denominator)
+    completed_trades = len(win_trades) + len(loss_trades)
+    win_rate = (len(win_trades) / completed_trades * 100) if completed_trades > 0 else 0
     
     # Tag statistics
     tag_counts = {}
@@ -405,8 +410,9 @@ def get_trade_statistics(data):
         'total_trades': total_trades,
         'win_trades': len(win_trades),
         'loss_trades': len(loss_trades),
+        'break_even_trades': len(break_even_trades),
         'pending_trades': len(pending_trades),
-        'win_rate': (len(win_trades) / (len(win_trades) + len(loss_trades)) * 100) if (len(win_trades) + len(loss_trades)) > 0 else 0,
+        'win_rate': win_rate,
         'tag_counts': tag_counts,
         'tag_win_rates': tag_win_rates,
         'recent_trades': sorted(all_trades, key=lambda x: x['timestamp'], reverse=True)[:10]
