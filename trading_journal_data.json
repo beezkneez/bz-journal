@@ -1,21 +1,5 @@
 {
   "transactions": [],
-  "2025-09-09": {
-    "morning": {},
-    "trading": {
-      "pnl": 0.0,
-      "process_grade": "A",
-      "grade_reasoning": "",
-      "general_comments": "",
-      "screenshot_notes": "",
-      "rule_compliance": {},
-      "what_could_improve": "",
-      "tomorrow_focus": "",
-      "trading_screenshots": []
-    },
-    "evening": {},
-    "rules": []
-  },
   "2025-09-10": {
     "morning": {
       "sleep_quality": 7,
