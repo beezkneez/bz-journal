@@ -74,6 +74,20 @@
             "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trade_1757540211_F.US.ENQU25.2025-09-10_134602.199.png",
             "caption": "trade 2"
           }
+        },
+        {
+          "id": "4c95387c-b36f-4928-b77b-601c7b56b4d5",
+          "timestamp": "2025-09-10 21:39:56",
+          "description": "2nd attempt at this trade I just took on trade 2, We took out the PPI low and I thought we were going to retrace back to take out the highs, It went 21 pts into profit, pulled back I added and then it dumped hard and stoppped me out.  I kept my cool and waited.",
+          "tags": [
+            "long-continuation",
+            "2nd-entry"
+          ],
+          "outcome": "loss",
+          "screenshot": {
+            "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trade_1757540395_F.US.ENQU25.2025-09-10_135218.206.png",
+            "caption": "trade 3 "
+          }
         }
       ]
     },
@@ -758,6 +772,7 @@
     "last_updated": "2025-09-10 13:27:21"
   },
   "tags": [
+    "2nd-entry",
     "OD-continuation",
     "absorption",
     "long-continuation",
