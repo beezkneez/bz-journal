@@ -1263,7 +1263,7 @@ if page == "📊 Calendar View":
             if day == 0:
                 # Empty day - same height as others
                 week_cols[i].markdown(
-                    '<div style="border: 2px solid #333; padding: 10px; height: 80px; background: rgba(0,0,0,0.2); border-radius: 5px;">&nbsp;</div>', 
+                    '<div class="calendar-day" style="padding: 10px; height: 80px; opacity: 0.3; display: flex; align-items: center; justify-content: center;">&nbsp;</div>', 
                     unsafe_allow_html=True
                 )
             else:
