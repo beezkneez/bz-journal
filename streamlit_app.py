@@ -2880,11 +2880,13 @@ elif page == "📚 Historical Analysis":
                                 outcome_colors = {
                                     'win': 'green',
                                     'loss': 'red',
-                                    'pending': 'orange'
+                                    'break-even': 'orange',
+                                    'pending': 'gray'
                                 }
                                 outcome_icons = {
                                     'win': '✅',
                                     'loss': '❌',
+                                    'break-even': '➖',
                                     'pending': '⏳'
                                 }
                                 
