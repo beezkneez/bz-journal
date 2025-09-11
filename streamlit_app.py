@@ -488,11 +488,15 @@ def analyze_trades(trades):
     individual_trade_pnls = []
     
     for trade in trades:
-        # Basic analysis
-        symbol = trade.get('Symbol', '')
-        side = trade.get('Side', '')
+        # Basic analysis with safe conversions
+        symbol = trade.get('Symbol', '').strip()
+        side = trade.get('Side', '').strip()
         quantity = safe_int(trade.get('Quantity', 0))
         price = safe_float(trade.get('Price', 0))
+        
+        # Skip invalid trades
+        if not symbol or not side or quantity == 0 or price == 0:
+            continue
         
         analysis['symbols'].add(symbol)
         analysis['order_types'].add(side)
@@ -514,53 +518,58 @@ def analyze_trades(trades):
         
         current_pos = open_positions[symbol]
         
-        if side.upper() == 'BUY':
-            if current_pos['qty'] >= 0:
-                # Adding to long or opening long
-                new_total_cost = current_pos['total_cost'] + (quantity * price)
-                new_qty = current_pos['qty'] + quantity
-                open_positions[symbol] = {
-                    'qty': new_qty,
-                    'avg_price': new_total_cost / new_qty if new_qty != 0 else 0,
-                    'total_cost': new_total_cost
-                }
-            else:
-                # Covering short position
-                avg_price = current_pos['avg_price']
-                price_diff = avg_price - price
-                pnl_change = quantity * price_diff * point_value
-                
-                remaining_qty = current_pos['qty'] + quantity
-                if remaining_qty <= 0:
-                    open_positions[symbol]['qty'] = remaining_qty
-                    open_positions[symbol]['total_cost'] = remaining_qty * avg_price
+        try:
+            if side.upper() == 'BUY':
+                if current_pos['qty'] >= 0:
+                    # Adding to long or opening long
+                    new_total_cost = current_pos['total_cost'] + (quantity * price)
+                    new_qty = current_pos['qty'] + quantity
+                    open_positions[symbol] = {
+                        'qty': new_qty,
+                        'avg_price': new_total_cost / new_qty if new_qty != 0 else 0,
+                        'total_cost': new_total_cost
+                    }
                 else:
-                    open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
-        else:
-            if current_pos['qty'] <= 0:
-                # Adding to short or opening short
-                new_total_cost = current_pos['total_cost'] - (quantity * price)
-                new_qty = current_pos['qty'] - quantity
-                open_positions[symbol] = {
-                    'qty': new_qty,
-                    'avg_price': abs(new_total_cost / new_qty) if new_qty != 0 else 0,
-                    'total_cost': new_total_cost
-                }
+                    # Covering short position
+                    avg_price = current_pos['avg_price']
+                    price_diff = avg_price - price
+                    pnl_change = quantity * price_diff * point_value
+                    
+                    remaining_qty = current_pos['qty'] + quantity
+                    if remaining_qty <= 0:
+                        open_positions[symbol]['qty'] = remaining_qty
+                        open_positions[symbol]['total_cost'] = remaining_qty * avg_price
+                    else:
+                        open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
             else:
-                # Closing long position
-                avg_price = current_pos['avg_price']
-                price_diff = price - avg_price
-                pnl_change = quantity * price_diff * point_value
-                
-                remaining_qty = current_pos['qty'] - quantity
-                if remaining_qty >= 0:
-                    open_positions[symbol]['qty'] = remaining_qty
-                    open_positions[symbol]['total_cost'] = remaining_qty * avg_price
+                if current_pos['qty'] <= 0:
+                    # Adding to short or opening short
+                    new_total_cost = current_pos['total_cost'] - (quantity * price)
+                    new_qty = current_pos['qty'] - quantity
+                    open_positions[symbol] = {
+                        'qty': new_qty,
+                        'avg_price': abs(new_total_cost / new_qty) if new_qty != 0 else 0,
+                        'total_cost': new_total_cost
+                    }
                 else:
-                    open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
+                    # Closing long position
+                    avg_price = current_pos['avg_price']
+                    price_diff = price - avg_price
+                    pnl_change = quantity * price_diff * point_value
+                    
+                    remaining_qty = current_pos['qty'] - quantity
+                    if remaining_qty >= 0:
+                        open_positions[symbol]['qty'] = remaining_qty
+                        open_positions[symbol]['total_cost'] = remaining_qty * avg_price
+                    else:
+                        open_positions[symbol] = {'qty': 0, 'avg_price': 0, 'total_cost': 0}
+            
+            if pnl_change != 0:
+                individual_trade_pnls.append(pnl_change)
         
-        if pnl_change != 0:
-            individual_trade_pnls.append(pnl_change)
+        except (ZeroDivisionError, ValueError):
+            # Skip this trade if calculation fails
+            continue
     
     # Calculate winner/loser statistics
     if individual_trade_pnls:
