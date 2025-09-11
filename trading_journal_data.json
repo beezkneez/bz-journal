@@ -754,5 +754,10 @@
         "net_pnl": 2528.030303029518
       }
     }
+  },
+  "account_settings": {
+    "starting_balance": 660.7,
+    "start_date": "2025-09-10",
+    "last_updated": "2025-09-11 00:15:35"
   }
 }
