@@ -13,6 +13,18 @@ import io
 import requests
 import uuid
 
+def safe_float(value, default=0.0):
+    try:
+        return float(value) if value and value != '' else default
+    except:
+        return default
+
+def safe_int(value, default=0):
+    try:
+        return int(float(value)) if value and value != '' else default
+    except:
+        return default
+
 # Set page config
 st.set_page_config(
     page_title="Trading Journal",
@@ -479,8 +491,8 @@ def analyze_trades(trades):
         # Basic analysis
         symbol = trade.get('Symbol', '')
         side = trade.get('Side', '')
-        quantity = int(trade.get('Quantity', 0))
-        price = float(trade.get('Price', 0))
+        quantity = safe_int(trade.get('Quantity', 0))
+        price = safe_float(trade.get('Price', 0))
         
         analysis['symbols'].add(symbol)
         analysis['order_types'].add(side)
