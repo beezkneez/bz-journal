@@ -935,5 +935,16 @@
     "starting_balance": 660.7,
     "start_date": "2025-09-10",
     "last_updated": "2025-09-10 13:27:21"
+  },
+  "2025-09-11": {
+    "morning": {
+      "morning_screenshots": []
+    },
+    "trade_day": {},
+    "trading": {},
+    "evening": {},
+    "rules": [
+      "New rule - click to edit"
+    ]
   }
 }
