@@ -570,9 +570,9 @@ def create_trade_summary_from_fills(fills, symbol):
         'pnl': pnl
     }
 
-# Account Balance Functions with Transaction Support
 def calculate_running_balance(data, target_date, starting_balance, start_date):
-    """Calculate running account balance up to target date including deposits/withdrawals"""
+    """Calculate running account balance up to target date including deposits/withdrawals
+    FIXED: Prevents double counting when target_date is today or future dates"""
     if not starting_balance or not start_date:
         return starting_balance if starting_balance else 0
     
@@ -584,11 +584,13 @@ def calculate_running_balance(data, target_date, starting_balance, start_date):
     
     running_balance = starting_balance
     current_date = start_date
+    today = date.today()
     
-    while current_date <= target_date:
+    # CRITICAL FIX: Only process dates UP TO (but not including) target_date if target_date is today or future
+    while current_date < target_date:  # ✅ Changed from <= to < to prevent double counting
         date_key = get_date_key(current_date)
         
-        # Add trading P&L
+        # Add trading P&L for completed days only
         if date_key in data and 'trading' in data[date_key]:
             pnl = data[date_key]['trading'].get('pnl', 0)
             running_balance += pnl
@@ -602,6 +604,23 @@ def calculate_running_balance(data, target_date, starting_balance, start_date):
                 running_balance -= transaction['amount']
         
         current_date += timedelta(days=1)
+    
+    # SPECIAL HANDLING: If target_date is exactly today or in the past, include it
+    if target_date <= today:
+        date_key = get_date_key(target_date)
+        
+        # Add trading P&L for the target date
+        if date_key in data and 'trading' in data[date_key]:
+            pnl = data[date_key]['trading'].get('pnl', 0)
+            running_balance += pnl
+        
+        # Add deposits/withdrawals for target date
+        transactions = get_transactions_for_date(data, target_date)
+        for transaction in transactions:
+            if transaction['type'] == 'deposit':
+                running_balance += transaction['amount']
+            elif transaction['type'] == 'withdrawal':
+                running_balance -= transaction['amount']
     
     return running_balance
 
