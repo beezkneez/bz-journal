@@ -759,22 +759,5 @@
     "starting_balance": 660.7,
     "start_date": "2025-09-10",
     "last_updated": "2025-09-11 00:15:35"
-  },
-  "2025-09-11": {
-    "morning": {},
-    "trade_day": {},
-    "trading": {
-      "pnl": 20.0,
-      "process_grade": "A",
-      "grade_reasoning": "",
-      "general_comments": "",
-      "screenshot_notes": "",
-      "rule_compliance": {},
-      "what_could_improve": "",
-      "tomorrow_focus": "",
-      "trading_screenshots": []
-    },
-    "evening": {},
-    "rules": []
   }
 }
