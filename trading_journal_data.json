@@ -46,6 +46,182 @@
       "Wait the first 5 minutes",
       "Take a breather between trades - let emotions settle"
     ],
+    "trade_day": {
+      "market_observations": "RTH gap fill day - OD short, continued",
+      "trades": [
+        {
+          "id": "dbbdd1f2-4d90-46b9-9239-04e458753aa4",
+          "timestamp": "2025-09-10 21:30:23",
+          "description": "opening drive continuation short to fill the gap",
+          "tags": [
+            "OD-continuation"
+          ],
+          "outcome": "win",
+          "screenshot": {
+            "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trade_1757539821_F.US.ENQU25.2025-09-10_133653.085.png",
+            "caption": "1st trade of day"
+          },
+          "date": "2025-09-10"
+        },
+        {
+          "id": "d0290f0e-9c09-4c59-b0d8-79839e2ca3da",
+          "timestamp": "2025-09-10 21:36:51",
+          "description": "We took out the PPI low and I thought we were going to retrace back to take out the highs, It went 21 pts into profit, pulled back I added and then it dumped hard and stoppped me out.  I kept my cool and waited.",
+          "tags": [
+            "long-continuation"
+          ],
+          "outcome": "loss",
+          "screenshot": {
+            "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trade_1757540211_F.US.ENQU25.2025-09-10_134602.199.png",
+            "caption": "trade 2"
+          },
+          "date": "2025-09-10"
+        },
+        {
+          "id": "4c95387c-b36f-4928-b77b-601c7b56b4d5",
+          "timestamp": "2025-09-10 21:39:56",
+          "description": "2nd attempt at this trade I just took on trade 2, We took out the PPI low and I thought we were going to retrace back to take out the highs, It went 21 pts into profit, pulled back I added and then it dumped hard and stoppped me out.  I kept my cool and waited.",
+          "tags": [
+            "long-continuation",
+            "2nd-entry"
+          ],
+          "outcome": "loss",
+          "screenshot": {
+            "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trade_1757540395_F.US.ENQU25.2025-09-10_135218.206.png",
+            "caption": "trade 3 "
+          },
+          "date": "2025-09-10"
+        },
+        {
+          "id": "4ef3067e-948a-4063-9c6e-fedf44e09f39",
+          "timestamp": "2025-09-10 21:40:22",
+          "description": "3rd attempt at this trade I just took on trade 2, We took out the PPI low and I thought we were going to retrace back to take out the highs, It went 21 pts into profit, pulled back I added and then it dumped hard and stoppped me out.  I kept my cool and waited.",
+          "tags": [
+            "long-continuation",
+            "3rd-entry"
+          ],
+          "outcome": "win",
+          "screenshot": {
+            "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trade_1757540422_F.US.ENQU25.2025-09-10_135715.451.png",
+            "caption": "trade 4"
+          },
+          "date": "2025-09-10"
+        },
+        {
+          "id": "7eb66f15-70cc-4653-a73a-1aece33d3ef7",
+          "timestamp": "2025-09-10 21:41:51",
+          "description": "Breakout adder to this winner, stopped me out though",
+          "tags": [
+            "long-continuation",
+            "breakout"
+          ],
+          "outcome": "loss",
+          "screenshot": {
+            "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trade_1757540510_F.US.ENQU25.2025-09-10_140712.296.png",
+            "caption": "trade 5"
+          },
+          "date": "2025-09-10"
+        },
+        {
+          "id": "411d21be-0f95-43a4-a122-a8beb6cc8aaf",
+          "timestamp": "2025-09-10 21:45:36",
+          "description": "short continuation, seeing the buyers getting stuffed",
+          "tags": [
+            "OD-continuation",
+            "absorption"
+          ],
+          "outcome": "win",
+          "screenshot": null,
+          "date": "2025-09-10"
+        },
+        {
+          "id": "17d4edda-c1b9-4bfe-81ca-e72a3181e7df",
+          "timestamp": "2025-09-10 21:46:19",
+          "description": "prior short failed, so I went for a breakout trade - not the best idea lol",
+          "tags": [
+            "breakout"
+          ],
+          "outcome": "win",
+          "screenshot": null,
+          "date": "2025-09-10"
+        },
+        {
+          "id": "990290f9-7178-48ba-b6d5-5fc775f41712",
+          "timestamp": "2025-09-10 21:48:11",
+          "description": "Breakout failed now I am really feelign the shorts, got chopped up a bit on these entries but ended up waiting through it and not oversizing so I was eventrually able to catch the move",
+          "tags": [
+            "absorption",
+            "OD-continuation"
+          ],
+          "outcome": "loss",
+          "screenshot": null,
+          "date": "2025-09-10"
+        },
+        {
+          "id": "c3e52c5f-0127-4e68-b887-6293ab8d3377",
+          "timestamp": "2025-09-10 21:48:22",
+          "description": "Breakout failed now I am really feelign the shorts, got chopped up a bit on these entries but ended up waiting through it and not oversizing so I was eventrually able to catch the move",
+          "tags": [
+            "absorption",
+            "OD-continuation"
+          ],
+          "outcome": "win",
+          "screenshot": null,
+          "date": "2025-09-10"
+        },
+        {
+          "id": "2444aadf-39a1-4856-b535-8ddbd1ba8640",
+          "timestamp": "2025-09-10 21:48:30",
+          "description": "Breakout failed now I am really feelign the shorts, got chopped up a bit on these entries but ended up waiting through it and not oversizing so I was eventrually able to catch the move",
+          "tags": [
+            "absorption",
+            "OD-continuation"
+          ],
+          "outcome": "loss",
+          "screenshot": null,
+          "date": "2025-09-10"
+        },
+        {
+          "id": "f290c108-384f-4a10-babe-4a45b69c2ee6",
+          "timestamp": "2025-09-10 21:48:39",
+          "description": "Breakout failed now I am really feelign the shorts, got chopped up a bit on these entries but ended up waiting through it and not oversizing so I was eventrually able to catch the move",
+          "tags": [
+            "absorption",
+            "OD-continuation"
+          ],
+          "outcome": "win",
+          "screenshot": null,
+          "date": "2025-09-10"
+        },
+        {
+          "id": "cc309cb3-ad40-42e5-b613-943ae1b002e6",
+          "timestamp": "2025-09-10 21:48:52",
+          "description": "Breakout failed now I am really feelign the shorts, got chopped up a bit on these entries but ended up waiting through it and not oversizing so I was eventrually able to catch the move",
+          "tags": [
+            "absorption",
+            "OD-continuation"
+          ],
+          "outcome": "win",
+          "screenshot": null,
+          "date": "2025-09-10"
+        },
+        {
+          "id": "00edb7f6-bc1c-4a7b-b17b-069a7cde30d7",
+          "timestamp": "2025-09-10 21:49:53",
+          "description": "Breakout failed now I am really feelign the shorts, got chopped up a bit on these entries but ended up waiting through it and not oversizing so I was eventrually able to catch the move",
+          "tags": [
+            "absorption",
+            "OD-continuation"
+          ],
+          "outcome": "win",
+          "screenshot": {
+            "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-10/trade_1757540993_F.US.ENQU25.2025-09-10_150849.884.png",
+            "caption": "last trade"
+          },
+          "date": "2025-09-10"
+        }
+      ]
+    },
     "trade_log": {
       "analysis": {
         "total_fills": 54,
@@ -758,6 +934,6 @@
   "account_settings": {
     "starting_balance": 660.7,
     "start_date": "2025-09-10",
-    "last_updated": "2025-09-11 00:15:35"
+    "last_updated": "2025-09-10 13:27:21"
   }
 }
