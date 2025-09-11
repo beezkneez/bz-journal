@@ -1189,6 +1189,26 @@ elif page == "📈 Trade Day":
         
         if trade_log_file:
             st.info("💡 This will parse your trade log and create individual trade entries that you can enhance with tags and screenshots.")
+            
+            # Show expected format info
+            with st.expander("📋 Expected File Format", expanded=False):
+                st.markdown("""
+                **Your trade log file should be a CSV or TSV with headers like:**
+                - `Symbol` - Stock/instrument symbol (e.g., AAPL, SPY)
+                - `Side` - BUY or SELL
+                - `Quantity` - Number of shares/contracts
+                - `Price` - Execution price
+                - `Time` - Time of execution (optional)
+                
+                **Example:**
+                ```
+                Symbol,Side,Quantity,Price,Time
+                AAPL,BUY,100,150.25,09:30:15
+                AAPL,SELL,100,150.75,09:45:22
+                ```
+                
+                ⚠️ **Note:** Empty cells will be handled gracefully, but Symbol, Side, Quantity, and Price are recommended for best results.
+                """)
     
     with col2:
         if trade_log_file:
