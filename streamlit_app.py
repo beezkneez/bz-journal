@@ -1762,13 +1762,6 @@ elif page == "📈 Trade Day":
                         color, icon = outcome_colors.get(outcome, ('#ffffff', '❓'))
                         st.markdown(f"**Outcome:** <span style='color: {color}; font-weight: bold;'>{icon} {outcome.upper()}</span>", unsafe_allow_html=True)
 
-                        # Trade Description individual
-                        trade_description_ind = st.text_area("Trade Description",
-                            placeholder="Describe your trade setup, entry reasoning, target, stop loss, etc.",
-                            height=100,
-                            key="new_trade_description_ind"
-                        )
-                        
                         # Display screenshot if exists
                         if trade.get('screenshot'):
                             st.markdown(f"**Screenshot:** {trade['screenshot']['caption']}")
