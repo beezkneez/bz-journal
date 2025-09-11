@@ -944,6 +944,7 @@
     "trading": {},
     "evening": {},
     "rules": [
+      "Wait first 5 minutes",
       "New rule - click to edit"
     ]
   }
