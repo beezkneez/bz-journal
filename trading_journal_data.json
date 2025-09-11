@@ -945,6 +945,7 @@
     "evening": {},
     "rules": [
       "Wait first 5 minutes",
+      "Micros only",
       "New rule - click to edit"
     ]
   }
