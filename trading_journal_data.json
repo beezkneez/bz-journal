@@ -950,7 +950,9 @@
       "morning_screenshots": []
     },
     "trading": {
-      "pnl": 0.0,
+      "pnl": 105.0,
+      "gross_pnl": 255,
+      "commissions": 150.0,
       "process_grade": "D",
       "grade_reasoning": "I broke my giveback rule again - I had a couple nice entries early and should have just shut er down at that point - again always trying to make MORE",
       "general_comments": "",
@@ -964,10 +966,7 @@
       },
       "what_could_improve": "I am realizing that the longer I trade the more liekly I am to make errors - if I make a few good trades, I need to just hold a runner and that way I keep from entering and then I just need to let the market play out",
       "tomorrow_focus": "Keep size small and let trades play out one direction - minimize commissions",
-      "trading_screenshots": [],
-      "trade_day_sync": true,
-      "gross_pnl": 0,
-      "commissions": 0.0
+      "trading_screenshots": []
     },
     "evening": {},
     "rules": [
