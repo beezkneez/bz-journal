@@ -7993,7 +7993,23 @@
         }
       ]
     },
-    "trading": {},
+    "trading": {
+      "pnl": 100.0,
+      "process_grade": "D",
+      "grade_reasoning": "I broke my giveback rule again - I had a couple nice entries early and should have just shut er down at that point - again always trying to make MORE",
+      "general_comments": "",
+      "screenshot_notes": "",
+      "rule_compliance": {
+        "rule_0": true,
+        "rule_1": false,
+        "rule_2": false,
+        "rule_3": false,
+        "rule_4": true
+      },
+      "what_could_improve": "I am realizing that the longer I trade the more liekly I am to make errors - if I make a few good trades, I need to just hold a runner and that way I keep from entering and then I just need to let the market play out",
+      "tomorrow_focus": "Keep size small and let trades play out one direction - minimize commissions",
+      "trading_screenshots": []
+    },
     "evening": {},
     "rules": [
       "Wait first 5 minutes",
