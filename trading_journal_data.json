@@ -946,6 +946,7 @@
     "rules": [
       "Wait first 5 minutes",
       "Micros only",
+      "30% giveback rule",
       "New rule - click to edit"
     ]
   }
