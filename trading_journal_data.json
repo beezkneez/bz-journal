@@ -938,6 +938,15 @@
   },
   "2025-09-11": {
     "morning": {
+      "sleep_quality": 9,
+      "emotional_state": "Calm & Focused",
+      "post_night_shift": false,
+      "checked_news": true,
+      "market_news": "CPI at 630",
+      "triggers_present": "I am at stn 10 now, working with 3 pt, driving pupmp 10a",
+      "grateful_for": "The fact I can do this from work is cool, I also need to trade small and chill because a call could come at  any moment",
+      "daily_goal": "",
+      "trading_process": "",
       "morning_screenshots": []
     },
     "trade_day": {},
@@ -948,7 +957,7 @@
       "Micros only",
       "30% giveback rule",
       "No tilt reentries",
-      "New rule - click to edit"
+      "No moving stops away from price"
     ]
   }
 }
