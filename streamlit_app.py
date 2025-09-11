@@ -1763,8 +1763,7 @@ elif page == "📈 Trade Day":
                         st.markdown(f"**Outcome:** <span style='color: {color}; font-weight: bold;'>{icon} {outcome.upper()}</span>", unsafe_allow_html=True)
 
                         # Trade Description individual
-                        trade_description_ind = st.text_area(
-                        "Trade Description",
+                        trade_description_ind = st.text_area("Trade Description",
                             placeholder="Describe your trade setup, entry reasoning, target, stop loss, etc.",
                             height=100,
                             key="new_trade_description_ind"
