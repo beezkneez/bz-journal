@@ -8022,5 +8022,23 @@
         }
       ]
     }
+  },
+  "2025-09-12": {
+    "morning": {
+      "sleep_quality": 7,
+      "emotional_state": "Calm & Focused",
+      "post_night_shift": false,
+      "checked_news": true,
+      "market_news": "8:00am - Prelim UoM Consumer Sentiment",
+      "triggers_present": "",
+      "grateful_for": "",
+      "daily_goal": "",
+      "trading_process": "",
+      "morning_screenshots": []
+    },
+    "trade_day": {},
+    "trading": {},
+    "evening": {},
+    "rules": []
   }
 }
