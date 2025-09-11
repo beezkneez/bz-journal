@@ -985,7 +985,10 @@
             "imported"
           ],
           "outcome": "pending",
-          "screenshot": null,
+          "screenshot": {
+            "url": "https://raw.githubusercontent.com/beezkneez/bz-journal/main/screenshots/2025-09-11/trade_1757623297_Screenshot 2025-09-11 140510.png",
+            "caption": "test"
+          },
           "raw_data": {
             "ActivityType": "Fills",
             "DateTime": "2025-09-11  09:34:52.020481",
