@@ -587,7 +587,7 @@ def calculate_running_balance(data, target_date, starting_balance, start_date):
     today = date.today()
     
     # CRITICAL FIX: Only process dates UP TO (but not including) target_date if target_date is today or future
-    while current_date < target_date:  # ✅ Changed from <= to < to prevent double counting
+    while current_date < target_date:  # Changed from <= to < to prevent double counting
         date_key = get_date_key(current_date)
         
         # Add trading P&L for completed days only
@@ -623,7 +623,7 @@ def calculate_running_balance(data, target_date, starting_balance, start_date):
                 running_balance -= transaction['amount']
     
     return running_balance
-
+    
 def get_account_settings(data):
     """Get account balance settings from data"""
     return data.get('account_settings', {
@@ -1017,61 +1017,77 @@ if page == "💰 Balance & Ledger":
         
         st.markdown("---")
         
-        # Date range for analysis
-        st.subheader("📊 Balance History Analysis")
-        col1, col2 = st.columns(2)
-        with col1:
-            analysis_start = st.date_input(
-                "Start Date",
-                value=start_date_obj,
-                min_value=start_date_obj,
-                max_value=date.today()
-            )
-        with col2:
-            analysis_end = st.date_input(
-                "End Date",
-                value=date.today(),
-                min_value=start_date_obj,
-                max_value=date.today()
-            )
-        
-        # Calculate daily balances including transactions
-        balance_data = []
-        current_date = analysis_start
-        running_balance = calculate_running_balance(data, analysis_start, starting_balance, start_date_obj)
-        
-        while current_date <= analysis_end:
-            date_key = get_date_key(current_date)
-            daily_pnl = 0
-            daily_deposits = 0
-            daily_withdrawals = 0
-            
-            # Get trading P&L
-            if date_key in data and 'trading' in data[date_key]:
-                daily_pnl = data[date_key]['trading'].get('pnl', 0)
-            
-            # Get transactions for this date
-            day_transactions = get_transactions_for_date(data, current_date)
-            for transaction in day_transactions:
-                if transaction['type'] == 'deposit':
-                    daily_deposits += transaction['amount']
-                else:
-                    daily_withdrawals += transaction['amount']
-            
-            balance_data.append({
-                'date': current_date,
-                'date_str': current_date.strftime("%Y-%m-%d"),
-                'balance': running_balance,
-                'daily_pnl': daily_pnl,
-                'daily_deposits': daily_deposits,
-                'daily_withdrawals': daily_withdrawals,
-                'net_transactions': daily_deposits - daily_withdrawals,
-                'cumulative_pnl': running_balance - starting_balance - calculate_total_deposits(data, current_date) + calculate_total_withdrawals(data, current_date)
-            })
-            
-            # Update running balance for next day
-            running_balance += daily_pnl + daily_deposits - daily_withdrawals
-            current_date += timedelta(days=1)
+       # Replace your balance history analysis date range section with this:
+
+# FIXED: Date range for analysis with proper balance calculation
+st.subheader("📊 Balance History Analysis (Fixed)")
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    analysis_start = st.date_input(
+        "Start Date",
+        value=max(start_date_obj, date.today() - timedelta(days=30)),  # Default to last 30 days
+        min_value=start_date_obj,
+        max_value=date.today() + timedelta(days=1)  # Allow tomorrow
+    )
+
+with col2:
+    analysis_end = st.date_input(
+        "End Date",
+        value=date.today(),
+        min_value=start_date_obj,
+        max_value=date.today() + timedelta(days=1)  # Allow tomorrow
+    )
+
+with col3:
+    show_details = st.checkbox("Show Daily Details", value=False)
+    show_projections = st.checkbox("Include Tomorrow", value=False)
+
+# Adjust end date if showing projections
+if show_projections and analysis_end == date.today():
+    analysis_end = date.today() + timedelta(days=1)
+
+# FIXED: Calculate daily balances using the corrected function
+balance_data = []
+current_date = analysis_start
+
+while current_date <= analysis_end:
+    date_key = get_date_key(current_date)
+    
+    # Calculate running balance UP TO this date (inclusive)
+    running_balance = calculate_running_balance(data, current_date, starting_balance, start_date_obj)
+    
+    # Get daily values for this specific date
+    daily_pnl = 0
+    daily_deposits = 0
+    daily_withdrawals = 0
+    
+    # Only include trading P&L if it's not a future date or if it's today and has data
+    if current_date <= date.today():
+        if date_key in data and 'trading' in data[date_key]:
+            daily_pnl = data[date_key]['trading'].get('pnl', 0)
+    
+    # Get transactions for this date
+    day_transactions = get_transactions_for_date(data, current_date)
+    for transaction in day_transactions:
+        if transaction['type'] == 'deposit':
+            daily_deposits += transaction['amount']
+        else:
+            daily_withdrawals += transaction['amount']
+    
+    balance_data.append({
+        'date': current_date,
+        'date_str': current_date.strftime("%Y-%m-%d"),
+        'balance': running_balance,
+        'daily_pnl': daily_pnl,
+        'daily_deposits': daily_deposits,
+        'daily_withdrawals': daily_withdrawals,
+        'net_transactions': daily_deposits - daily_withdrawals,
+        'is_future': current_date > date.today(),
+        'is_today': current_date == date.today()
+    })
+    
+    current_date += timedelta(days=1)
         
         # Display summary metrics
         if balance_data:
